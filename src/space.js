@@ -1,14 +1,15 @@
 // Reads a whole data space: the registry and every item and journal file. Problems reading a
 // single file are collected instead of thrown, so one broken file never hides the rest.
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseItem } from './item.js';
+import { RESERVED_AREAS } from './rules.js';
 
 /**
  * Returns { registry, registryError, folders, items, journals, unreadable }.
  * - folders: names of the folders under projects/.
- * - items: { file, project, archived, year, item } for every parsed item file.
+ * - items: { file, project, archived, year, mtimeMs, item } for every parsed item file.
  * - journals: { file, project, name } for every file under a journal/ folder.
  * - unreadable: { file, message } for files that could not be read or parsed.
  * File paths are relative to the data space and use forward slashes.
@@ -40,14 +41,44 @@ export function readSpace(dir) {
   return space;
 }
 
+/** Map of project id → project, the reserved inbox and general areas included. First one wins. */
+export function projectMap(registry) {
+  const projects = new Map(RESERVED_AREAS.map((area) => [area.id, { ...area, release: 'none' }]));
+  for (const project of Array.isArray(registry?.projects) ? registry.projects : []) {
+    if (project && typeof project.id === 'string' && !projects.has(project.id)) projects.set(project.id, project);
+  }
+  return projects;
+}
+
+/**
+ * Map of id and alias → item entry. When two entries claim the same id, the first one keeps it
+ * and `onDuplicate(entry, id, other, what)` is called for the second.
+ */
+export function indexItems(items, onDuplicate = () => {}) {
+  const byId = new Map();
+  const claim = (entry, id, what) => {
+    const other = byId.get(id);
+    if (other) onDuplicate(entry, id, other, what);
+    else byId.set(id, entry);
+  };
+  for (const entry of items) {
+    if (typeof entry.item.fields.id !== 'string') continue;
+    claim(entry, entry.item.fields.id, 'id');
+    for (const alias of entry.item.fields.aliases ?? []) claim(entry, alias, 'alias');
+  }
+  return byId;
+}
+
 function readItemFile(dir, space, entry) {
   if (!entry.file.endsWith('.md')) {
     space.unreadable.push({ file: entry.file, message: 'only .md item files belong here' });
     return;
   }
   try {
-    const item = parseItem(readFileSync(join(dir, entry.file), 'utf8'));
-    space.items.push({ ...entry, item });
+    const path = join(dir, entry.file);
+    const mtimeMs = statSync(path).mtimeMs;
+    const item = parseItem(readFileSync(path, 'utf8'));
+    space.items.push({ ...entry, mtimeMs, item });
   } catch (error) {
     space.unreadable.push({ file: entry.file, message: error.message });
   }
