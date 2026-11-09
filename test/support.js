@@ -1,5 +1,6 @@
 // Helpers shared by the tests. Every data space is made up and written to a fresh temp folder.
 
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -25,6 +26,21 @@ export function makeSpace(t, files) {
   }
   return dir;
 }
+
+/** Turns `dir` into a git repository with a made-up identity and commits everything in it. */
+export function initRepo(dir) {
+  const git = (...args) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8' });
+  git('init', '--quiet', '--initial-branch=main');
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'Test');
+  git('config', 'core.autocrlf', 'false');
+  git('add', '--all');
+  git('commit', '--quiet', '--allow-empty', '-m', 'initial');
+  return git;
+}
+
+/** A fixed local time for the tests: 10 November 2026, 09:05. */
+export const NOW = new Date(2026, 10, 10, 9, 5);
 
 /** Builds item text from header fields and an optional body. */
 export function itemText(fields, body = '') {

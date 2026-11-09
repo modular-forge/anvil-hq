@@ -5,8 +5,8 @@ features, bugs, decisions and ideas live as JSON and Markdown files in a git rep
 own, so every change has history and a backup. The `anvil` command reads and writes them, a local
 web board shows them, and Claude Code sessions share the same state through it.
 
-> **Status:** early development. The data format and the `validate` command work; the rest of
-> the CLI, the web board and the Claude Code integration are not built yet.
+> **Status:** early development. The data format and the item, step and journal commands work;
+> project commands, the web board and the Claude Code integration are not built yet.
 
 ## Requirements
 
@@ -25,6 +25,26 @@ anvil validate --data examples             # or: node bin/anvil.js validate --da
 The name `anvil` clashes with the `anvil` command of Foundry (Ethereum). If you have Foundry
 installed, skip `npm link` and add an alias instead, for example `alias av='node /path/to/anvil-hq/bin/anvil.js'`
 (bash/zsh) or `function av { node C:\path\to\anvil-hq\bin\anvil.js @args }` (PowerShell).
+
+## Commands
+
+```bash
+anvil item create <project> --kind task --title "…" [--parent AB-3] [--step "…"]…
+anvil item list [--project <id>] [--status doing]… [--all]
+anvil item show <id>
+anvil item status <id> doing
+anvil item status <id> done --evidence "https://github.com/…/pull/12"
+anvil item status <id> blocked --reason "…"
+anvil item set <id> --priority high --labels ui,forms     # an empty value removes a field
+anvil item move <id> <project>                            # new id, old one kept as an alias
+anvil step add <id> "…" | step check <id> <n> | step uncheck <id> <n> | step skip <id> <n> --reason "…"
+anvil journal add <project> "…" | journal list <project>
+anvil validate
+```
+
+Every command accepts `--json`. Commands that change data validate the result first, write it
+atomically and commit only the files they touched to the data space's git repository. Run
+`anvil <command> --help` for the options of each command.
 
 ## Your data
 

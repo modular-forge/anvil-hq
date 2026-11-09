@@ -72,8 +72,12 @@ src/item.js         # item files: header, body and steps
 src/rules.js        # statuses, kinds and closing rules
 src/json-schema.js  # minimal JSON Schema validator for the subset the schemas use
 src/data-dir.js     # locating the data space
-src/space.js        # reading a whole data space
-src/validate.js     # `anvil validate`
+src/space.js        # reading a whole data space, indexing ids and aliases
+src/validate.js     # `anvil validate`, and the item checks every write reuses
+src/store.js        # operations that change data: items, steps, journal
+src/fsutil.js       # atomic writes, exclusive creation, retries for Windows file locks
+src/git.js          # commits of the touched paths only, retrying on index.lock
+src/errors.js       # AnvilError (exit 1), UsageError (exit 2), ConflictError
 schema/             # JSON Schemas (public contract)
 docs/format.md      # format reference (public contract)
 examples/           # made-up data space, used by docs and tests
