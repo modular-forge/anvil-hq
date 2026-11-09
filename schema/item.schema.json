@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/modular-forge/anvil-hq/schema/item.schema.json",
+  "title": "anvil item header",
+  "description": "Header of an item file (projects/<project>/items/<id>.md), read as text. Rules that span fields or files are described in docs/format.md.",
+  "type": "object",
+  "required": ["id", "title", "kind", "status", "since", "created"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "$comment": "Project prefix and a number.", "type": "string", "pattern": "^[A-Z]{2,4}-[1-9][0-9]*$" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "kind": { "type": "string", "enum": ["task", "feature", "bug", "decision", "idea"] },
+    "status": {
+      "type": "string",
+      "enum": ["backlog", "todo", "doing", "blocked", "done", "released", "cancelled"]
+    },
+    "since": { "description": "Date of the last status change.", "type": "string", "format": "date" },
+    "created": { "type": "string", "format": "date" },
+    "priority": { "type": "string", "enum": ["high", "medium", "low"] },
+    "reason": { "description": "Why the item is blocked or cancelled.", "type": "string", "minLength": 1 },
+    "evidence": { "description": "What proves the item is done: a URL or free text.", "type": "string", "minLength": 1 },
+    "release": { "description": "Version the item was released in.", "type": "string", "minLength": 1 },
+    "parent": { "description": "Feature or bug a task belongs to.", "type": "string", "pattern": "^[A-Z]{2,4}-[1-9][0-9]*$" },
+    "related": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[A-Z]{2,4}-[1-9][0-9]*$" }
+    },
+    "labels": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }
+    },
+    "links": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "format": "uri" }
+    },
+    "aliases": {
+      "description": "Former ids, kept when the item moved to another project.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[A-Z]{2,4}-[1-9][0-9]*$" }
+    },
+    "supersededBy": { "description": "Decision that replaces this one.", "type": "string", "pattern": "^[A-Z]{2,4}-[1-9][0-9]*$" }
+  }
+}

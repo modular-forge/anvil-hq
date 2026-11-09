@@ -1,0 +1,37 @@
+{
+  "$schema": "../schema/projects.schema.json",
+  "schemaVersion": 1,
+  "archiveAfterDays": 60,
+  "projects": [
+    {
+      "id": "bakery-site",
+      "prefix": "BS",
+      "name": "Bakery site",
+      "summary": "Website for a neighbourhood bakery, deployed on every push to main",
+      "state": "active",
+      "kind": "web",
+      "release": "none",
+      "repos": ["example-org/bakery-site"]
+    },
+    {
+      "id": "pocket-budget",
+      "prefix": "PB",
+      "name": "Pocket Budget",
+      "summary": "Mobile app to split shared household expenses",
+      "state": "active",
+      "kind": "mobile",
+      "release": "versioned",
+      "repos": ["example-org/pocket-budget", "example-org/pocket-budget-api"],
+      "notion": "https://www.notion.so/example/Pocket-Budget-0123456789abcdef0123456789abcdef"
+    },
+    {
+      "id": "home-lab",
+      "prefix": "HL",
+      "name": "Home lab",
+      "summary": "Small home server for backups and media",
+      "state": "paused",
+      "kind": "server",
+      "release": "none"
+    }
+  ]
+}

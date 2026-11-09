@@ -1,0 +1,22 @@
+{
+  "name": "anvil-hq",
+  "version": "0.1.0",
+  "description": "Local, dependency-free personal project manager: items in Markdown and JSON files, history in git, a local web board and Claude Code integration.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "anvil": "bin/anvil.js"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "validate:examples": "node bin/anvil.js validate --data examples"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/modular-forge/anvil-hq.git"
+  }
+}

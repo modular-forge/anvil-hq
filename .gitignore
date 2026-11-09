@@ -1,0 +1,8 @@
+node_modules/
+
+# Personal data never lives in this repository: it belongs in a separate, private data
+# repository. These entries catch a data space created here by mistake. The fake data
+# space in examples/ is not affected.
+/projects.json
+/projects/
+/anvil-data/

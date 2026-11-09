@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/modular-forge/anvil-hq/schema/projects.schema.json",
+  "title": "anvil projects registry",
+  "description": "projects.json at the root of an anvil data space: the project registry and global settings.",
+  "type": "object",
+  "required": ["schemaVersion", "projects"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": {
+      "description": "Version of the data format. Migrated with `anvil migrate`.",
+      "const": 1
+    },
+    "archiveAfterDays": {
+      "description": "Days an item stays in its final status before `anvil archive` moves it. Default 60.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "prefix", "name", "state", "kind", "release"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "Folder name under projects/. Lowercase letters, digits and hyphens. `inbox` and `general` are reserved.",
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "prefix": {
+            "description": "Item id prefix, 2 to 4 capital letters. `IN` and `GN` are reserved.",
+            "type": "string",
+            "pattern": "^[A-Z]{2,4}$"
+          },
+          "name": { "type": "string", "minLength": 1 },
+          "summary": { "description": "One line.", "type": "string", "minLength": 1 },
+          "state": {
+            "type": "string",
+            "enum": ["idea", "planning", "design", "active", "paused", "done", "cancelled"]
+          },
+          "kind": {
+            "description": "Picks the template of starting items.",
+            "type": "string",
+            "enum": ["web", "mobile", "server", "tooling"]
+          },
+          "release": {
+            "description": "`versioned`: items go from done to released with a version. `none`: done is final.",
+            "type": "string",
+            "enum": ["versioned", "none"]
+          },
+          "repos": {
+            "description": "Git repositories of the project, as owner/name.",
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$" }
+          },
+          "notion": { "description": "URL of the project's page.", "type": "string", "format": "uri" }
+        }
+      }
+    }
+  }
+}
