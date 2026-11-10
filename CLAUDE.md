@@ -22,26 +22,37 @@ separate private repository.
 
 ## Stack
 
-| Layer   | Technology                                                                    |
-| ------- | ----------------------------------------------------------------------------- |
-| Runtime | Node.js 24 or later (`engines` in `package.json`), ES modules                 |
-| Deps    | None at runtime: only `node:` built-in modules. The future Angular UI is the one build-time exception |
-| Tests   | `node:test` and `node:assert/strict`                                          |
-| Data    | JSON (`projects.json`) and Markdown with a flat header (items)                |
+| Layer    | Technology                                                                    |
+| -------- | ----------------------------------------------------------------------------- |
+| Runtime  | Node.js 24 or later (`engines` in `package.json`), ES modules                 |
+| Language | TypeScript, run directly by Node (type stripping): no build step, no output files |
+| Deps     | None at runtime: only `node:` built-in modules. Dev only: `typescript`, `@types/node` (pinned). The future Angular UI is the one build-time exception |
+| Tests    | `node:test` and `node:assert/strict`                                          |
+| Data     | JSON (`projects.json`) and Markdown with a flat header (items)                |
 
 ## Commands
 
 ```bash
+npm run check                                 # typecheck + tests + example data: run before finishing
+npm run typecheck                             # tsc --noEmit (strict)
 npm test                                      # all unit tests
-node --test test/frontmatter.test.js          # one test file
-npm run validate:examples                     # the example data space must stay valid
-node bin/anvil.js <command> --data examples   # run the CLI against the example data
+node --test test/frontmatter.test.ts          # one test file
+node bin/anvil.ts <command> --data examples   # run the CLI against the example data
 ```
 
 ## Definition of done
 
-A task is finished only when `npm test` and `npm run validate:examples` pass, and you quote the
-real result in your summary. Never skip, delete or weaken a test to go green.
+A task is finished only when `npm run check` passes, and you quote the real result in your
+summary. Never skip, delete or weaken a test, or loosen `tsconfig.json`, to go green.
+
+## TypeScript rules
+
+- Every source and test file is `.ts`. JavaScript only where Node strictly needs it (none today).
+- Only syntax Node can strip (`erasableSyntaxOnly`): no `enum`, `namespace`, parameter
+  properties or decorators. Relative imports carry the `.ts` extension; type-only imports use
+  `import type` (`verbatimModuleSyntax`).
+- Header values are untrusted text until validated: keep `ItemFields` fields as `string`, and
+  narrow with the validators, not with casts. Avoid `any`; use `unknown` and narrow.
 
 ## Supply chain
 
@@ -54,9 +65,9 @@ real result in your summary. Never skip, delete or weaken a test to go green.
 - The data format is a public contract: `docs/format.md`, `schema/*.schema.json` and
   `examples/`. A change to one is a change to all three, plus `schemaVersion` and a migration
   when existing data would break.
-- The JSON Schemas are the single source of the data's shape: `src/json-schema.js` enforces them
+- The JSON Schemas are the single source of the data's shape: `src/json-schema.ts` enforces them
   and rejects any keyword it does not support. Rules that span fields or files (closing rules,
-  references) live in `src/rules.js` and `src/validate.js`.
+  references) live in `src/rules.ts` and `src/validate.ts`.
 - Never write outside the data space, and refuse to work on a data space inside this repository
   (except `examples/`).
 - Git is always called without a shell (`execFile`), with fixed arguments and only the paths that
@@ -65,29 +76,31 @@ real result in your summary. Never skip, delete or weaken a test to go green.
 ## Project structure
 
 ```
-bin/anvil.js        # entry point
-src/cli.js          # argument parsing and command dispatch
-src/frontmatter.js  # header parser and serializer (flat key: value subset of YAML)
-src/item.js         # item files: header, body and steps
-src/rules.js        # statuses, kinds and closing rules
-src/json-schema.js  # minimal JSON Schema validator for the subset the schemas use
-src/data-dir.js     # locating the data space
-src/space.js        # reading a whole data space, indexing ids and aliases
-src/validate.js     # `anvil validate`, and the item checks every write reuses
-src/store.js        # operations that change data: items, steps, journal
-src/fsutil.js       # atomic writes, exclusive creation, retries for Windows file locks
-src/git.js          # commits of the touched paths only, retrying on index.lock
-src/errors.js       # AnvilError (exit 1), UsageError (exit 2), ConflictError
-src/registry.js     # writing projects.json in a stable style
-src/projects.js     # project create, scaffold, promote, release, link
-src/maintenance.js  # archive and search
-src/init.js         # init: new data space and user configuration
-src/briefing.js     # briefing for the Claude Code session hook (never fails)
-src/doctor.js       # doctor: health and privacy checks
-src/migrate.js      # format migrations (none yet)
+bin/anvil.ts        # entry point
+src/types.ts        # the data model (items, projects, context, results)
+src/cli.ts          # argument parsing and command dispatch
+src/frontmatter.ts  # header parser and serializer (flat key: value subset of YAML)
+src/item.ts         # item files: header, body and steps
+src/rules.ts        # statuses, kinds and closing rules
+src/json-schema.ts  # minimal JSON Schema validator for the subset the schemas use
+src/data-dir.ts     # locating the data space
+src/space.ts        # reading a whole data space, indexing ids and aliases
+src/validate.ts     # `anvil validate`, and the item checks every write reuses
+src/store.ts        # operations that change data: items, steps, journal
+src/fsutil.ts       # atomic writes, exclusive creation, retries for Windows file locks
+src/git.ts          # commits of the touched paths only, retrying on index.lock
+src/errors.ts       # AnvilError (exit 1), UsageError (exit 2), ConflictError
+src/registry.ts     # writing projects.json in a stable style
+src/projects.ts     # project create, scaffold, promote, release, link
+src/maintenance.ts  # archive and search
+src/init.ts         # init: new data space and user configuration
+src/briefing.ts     # briefing for the Claude Code session hook (never fails)
+src/doctor.ts       # doctor: health and privacy checks
+src/migrate.ts      # format migrations (none yet)
 templates/          # built-in starting items per project kind (generic, public)
 schema/             # JSON Schemas (public contract)
 docs/format.md      # format reference (public contract)
+docs/architecture.md # how the code works: write path, concurrency, errors, tests
 examples/           # made-up data space, used by docs and tests
-test/               # node:test files
+test/               # node:test files (.test.ts)
 ```
