@@ -1,0 +1,31 @@
+{
+  "$schema": "../schema/template.schema.json",
+  "items": [
+    {
+      "kind": "task",
+      "title": "Document the hardware, operating system and services",
+      "labels": ["setup"]
+    },
+    {
+      "kind": "task",
+      "title": "Set up backups and test a restore",
+      "priority": "high",
+      "steps": ["Decide what is backed up and how often", "Keep a copy off site", "Restore a backup to check it works"]
+    },
+    {
+      "kind": "task",
+      "title": "Harden remote access",
+      "steps": ["SSH keys only, no passwords", "Firewall with only the needed ports", "Automatic security updates"]
+    },
+    {
+      "kind": "task",
+      "title": "Set up monitoring and alerts",
+      "steps": ["Disk space", "Service health", "Certificate expiry"]
+    },
+    {
+      "kind": "task",
+      "title": "Write a recovery runbook",
+      "body": "How to rebuild the server from scratch with the backups, written so it can be followed under pressure."
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/modular-forge/anvil-hq/schema/template.schema.json",
+  "title": "anvil project template",
+  "description": "templates/<kind>.json: starting items that `anvil project scaffold` creates in a project of that kind.",
+  "type": "object",
+  "required": ["items"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "title"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "type": "string", "enum": ["task", "feature", "bug", "decision", "idea"] },
+          "title": { "description": "Also identifies the item: scaffolding skips a title the project already has.", "type": "string", "minLength": 1, "maxLength": 200 },
+          "priority": { "type": "string", "enum": ["high", "medium", "low"] },
+          "labels": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }
+          },
+          "body": { "type": "string" },
+          "steps": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    }
+  }
+}

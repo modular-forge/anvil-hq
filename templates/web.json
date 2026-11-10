@@ -1,0 +1,32 @@
+{
+  "$schema": "../schema/template.schema.json",
+  "items": [
+    {
+      "kind": "task",
+      "title": "Set up the repository and CI",
+      "labels": ["setup"],
+      "steps": ["README with how to run the project", "License", "CI runs lint, tests and build on every pull request"]
+    },
+    {
+      "kind": "task",
+      "title": "Set up deployment",
+      "labels": ["setup"],
+      "steps": ["Pick the hosting", "Deploy automatically from the main branch", "Custom domain with HTTPS"]
+    },
+    {
+      "kind": "task",
+      "title": "Add page metadata for search engines and link previews",
+      "steps": ["Title and description per page", "Open Graph image", "sitemap.xml and robots.txt"]
+    },
+    {
+      "kind": "task",
+      "title": "Check accessibility",
+      "steps": ["Keyboard navigation", "Colour contrast", "Screen reader labels", "Respects reduced motion"]
+    },
+    {
+      "kind": "task",
+      "title": "Decide on analytics and privacy",
+      "body": "Either no tracking at all, or a privacy-friendly tool with a privacy notice and, where the law asks for it, consent."
+    }
+  ]
+}

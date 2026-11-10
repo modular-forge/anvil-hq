@@ -1,0 +1,21 @@
+{
+  "$schema": "../schema/template.schema.json",
+  "items": [
+    {
+      "kind": "task",
+      "title": "Set up the repository and CI",
+      "labels": ["setup"],
+      "steps": ["License", "CI runs lint and tests on every pull request", "Dependencies pinned"]
+    },
+    {
+      "kind": "task",
+      "title": "Write the README",
+      "steps": ["What it is and who it is for", "Installation", "Usage examples"]
+    },
+    {
+      "kind": "task",
+      "title": "Define the versioning and release process",
+      "steps": ["Version number scheme", "Changelog", "Release tags"]
+    }
+  ]
+}

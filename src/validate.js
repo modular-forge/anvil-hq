@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { validateSchema } from './json-schema.js';
 import { CONTAINER_KINDS, RESERVED_AREAS, closeBlockers, statusProblems } from './rules.js';
 import { TOOL_ROOT } from './data-dir.js';
-import { indexItems, readSpace } from './space.js';
+import { indexItems, projectMap, readSpace } from './space.js';
 
 const projectsSchema = loadSchema('projects.schema.json');
 const itemSchema = loadSchema('item.schema.json');
@@ -75,31 +75,35 @@ export function validateSpace(dir) {
   return { errors, stats: { projects: projects.size - RESERVED_AREAS.length, items: space.items.length } };
 }
 
-/** Validates projects.json and returns a Map of project id → project, reserved areas included. */
-function checkRegistry(space, report) {
-  const projects = new Map(RESERVED_AREAS.map((area) => [area.id, { ...area, release: 'none' }]));
-  if (space.registryError) {
-    report('projects.json', `cannot read: ${space.registryError}`);
-    return projects;
-  }
-  for (const { path, message } of validateSchema(projectsSchema, space.registry)) {
-    report('projects.json', `${path || 'root'} ${message}`);
-  }
-  if (!Array.isArray(space.registry?.projects)) return projects;
-
+/** Problems of a projects.json registry: its schema, and ids and prefixes that clash. */
+export function registryProblems(registry) {
+  const problems = validateSchema(projectsSchema, registry).map(({ path, message }) => `${path || 'root'} ${message}`);
+  if (!Array.isArray(registry?.projects)) return problems;
+  const ids = new Set(RESERVED_AREAS.map((area) => area.id));
   const prefixes = new Map(RESERVED_AREAS.map((area) => [area.prefix, area.id]));
-  for (const project of space.registry.projects) {
+  for (const project of registry.projects) {
     if (!project || typeof project.id !== 'string') continue;
-    if (projects.has(project.id)) {
-      report('projects.json', `project id "${project.id}" is ${RESERVED_AREAS.some((a) => a.id === project.id) ? 'reserved' : 'repeated'}`);
+    if (ids.has(project.id)) {
+      problems.push(`project id "${project.id}" is ${RESERVED_AREAS.some((a) => a.id === project.id) ? 'reserved' : 'repeated'}`);
       continue;
     }
     if (prefixes.has(project.prefix)) {
-      report('projects.json', `prefix "${project.prefix}" of "${project.id}" is already used by "${prefixes.get(project.prefix)}"`);
+      problems.push(`prefix "${project.prefix}" of "${project.id}" is already used by "${prefixes.get(project.prefix)}"`);
     }
+    ids.add(project.id);
     prefixes.set(project.prefix, project.id);
-    projects.set(project.id, project);
   }
+  return problems;
+}
+
+/** Validates projects.json and returns a Map of project id → project, reserved areas included. */
+function checkRegistry(space, report) {
+  if (space.registryError) {
+    report('projects.json', `cannot read: ${space.registryError}`);
+    return projectMap(null);
+  }
+  for (const problem of registryProblems(space.registry)) report('projects.json', problem);
+  const projects = projectMap(space.registry);
   for (const folder of space.folders) {
     if (!projects.has(folder)) report(`projects/${folder}`, `folder of an unknown project "${folder}"`);
   }

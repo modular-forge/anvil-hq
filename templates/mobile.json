@@ -1,0 +1,32 @@
+{
+  "$schema": "../schema/template.schema.json",
+  "items": [
+    {
+      "kind": "task",
+      "title": "Set up the repository and CI",
+      "labels": ["setup"],
+      "steps": ["README with how to run the app", "License", "CI runs lint, tests and builds on every pull request"]
+    },
+    {
+      "kind": "task",
+      "title": "Define the app identity",
+      "labels": ["setup"],
+      "steps": ["App name", "Bundle or application id", "Icon", "Splash screen"]
+    },
+    {
+      "kind": "task",
+      "title": "Define the versioning and release process",
+      "steps": ["Version number scheme", "Changelog", "Signing keys stored safely", "Beta channel (TestFlight, internal testing)"]
+    },
+    {
+      "kind": "task",
+      "title": "Set up crash reporting",
+      "body": "Know about crashes before users report them, without collecting more personal data than needed."
+    },
+    {
+      "kind": "task",
+      "title": "Prepare the store listings",
+      "steps": ["Screenshots", "Description", "Privacy policy URL", "Data safety and privacy forms", "Age rating"]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { main } from '../src/cli.js';
@@ -121,6 +121,62 @@ describe('anvil write commands', () => {
     assert.match(shown, /^# projects\/alpha\/items\/AL-1.md\n---\nid: AL-1\n/);
     assert.match(shown, /Child tasks:\n {2}AL-2 {2}todo {6}Item AL-2\n$/);
     assert.deepEqual(JSON.parse((await run(dir, ['item', 'show', 'AL-2', '--json'])).stdout).steps.map((s) => s.checked), [true, false]);
+  });
+
+  it('creates a project with its starting items in one commit', async (t) => {
+    const dir = makeSpace(t, {});
+    const git = initRepo(dir);
+    const { code, stdout } = await run(dir, ['project', 'create', 'gamma', '--prefix', 'GA', '--kind', 'tooling', '--release', 'versioned', '--repo', 'example-org/gamma', '--scaffold']);
+    assert.equal(code, 0);
+    assert.match(stdout, /^Created project gamma with \d+ starting item\(s\)\nCommitted /);
+    assert.equal(git('log', '-1', '--format=%s'), 'gamma: create project\n');
+    assert.equal(git('status', '--porcelain'), '');
+  });
+
+  it('previews a release, then writes its notes to a new file', async (t) => {
+    const dir = makeSpace(t, { 'projects/alpha/items/AL-1.md': itemText(fields('AL-1', { title: 'Export', status: 'done', evidence: 'x' })) });
+    initRepo(dir);
+    const preview = await run(dir, ['project', 'release', 'alpha', '1.0', '--dry-run']);
+    assert.match(preview.stdout, /^Would release AL-1 in 1.0\n\n## Alpha 1.0 \(2026-11-10\)/);
+    assert.doesNotMatch(preview.stdout, /Committed/);
+
+    const notes = join(dir, '..', `${dir.split(/[\\/]/).at(-1)}-notes.md`);
+    t.after(() => rmSync(notes, { force: true }));
+    const { stdout } = await run(dir, ['project', 'release', 'alpha', '1.0', '--out', notes]);
+    assert.match(stdout, /^Released AL-1 in 1.0; notes written to /);
+    assert.match(readFileSync(notes, 'utf8'), /- Export \(AL-1\)/);
+    const again = await run(dir, ['project', 'release', 'alpha', '1.1', '--out', notes]);
+    assert.equal(again.code, 1);
+    assert.match(again.stderr, /already exists/);
+  });
+
+  it('initialises a data space from the CLI', async (t) => {
+    const parent = makeSpace(t, { 'projects.json': undefined });
+    const io = captureIo();
+    const code = await main(['init', 'data', '--git-email', 'me@example.com', '--git-name', 'Me'], {
+      stdout: io.stdout, stderr: io.stderr, env: { APPDATA: parent, XDG_CONFIG_HOME: parent }, cwd: parent, now: () => NOW,
+    });
+    assert.equal(code, 0, io.out.stderr);
+    assert.match(io.out.stdout, /^Created a data space in .*data\nCommitted [0-9a-f]+\nDefault data space on this machine/);
+  });
+
+  it('never fails the briefing, even without a data space', async (t) => {
+    const empty = makeSpace(t, { 'projects.json': undefined });
+    const io = captureIo();
+    const code = await main(['briefing'], { stdout: io.stdout, stderr: io.stderr, env: { APPDATA: empty, XDG_CONFIG_HOME: empty }, cwd: empty });
+    assert.equal(code, 0);
+    assert.equal(io.out.stdout, '');
+    assert.match(io.out.stderr, /no data space found/);
+  });
+
+  it('searches and archives from the CLI', async (t) => {
+    const dir = makeSpace(t, { 'projects/beta/items/BE-1.md': itemText(fields('BE-1', { title: 'Rotate logs', status: 'done', evidence: 'x', created: '2026-01-01', since: '2026-01-02' })) });
+    initRepo(dir);
+    assert.equal((await run(dir, ['search', 'LOGS'])).stdout, 'BE-1  done      Rotate logs\n');
+    const { stdout } = await run(dir, ['archive']);
+    assert.match(stdout, /^BE-1: projects\/beta\/items\/BE-1.md → projects\/beta\/archive\/2026\/BE-1.md\nCommitted /);
+    assert.equal((await run(dir, ['search', 'logs'])).stdout, 'No matches.\n');
+    assert.match((await run(dir, ['search', 'logs', '--all'])).stdout, /BE-1 .* \(archived\)/);
   });
 
   it('waits for another git process to release the index lock', async (t) => {

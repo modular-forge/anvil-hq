@@ -78,6 +78,14 @@ src/store.js        # operations that change data: items, steps, journal
 src/fsutil.js       # atomic writes, exclusive creation, retries for Windows file locks
 src/git.js          # commits of the touched paths only, retrying on index.lock
 src/errors.js       # AnvilError (exit 1), UsageError (exit 2), ConflictError
+src/registry.js     # writing projects.json in a stable style
+src/projects.js     # project create, scaffold, promote, release, link
+src/maintenance.js  # archive and search
+src/init.js         # init: new data space and user configuration
+src/briefing.js     # briefing for the Claude Code session hook (never fails)
+src/doctor.js       # doctor: health and privacy checks
+src/migrate.js      # format migrations (none yet)
+templates/          # built-in starting items per project kind (generic, public)
 schema/             # JSON Schemas (public contract)
 docs/format.md      # format reference (public contract)
 examples/           # made-up data space, used by docs and tests
