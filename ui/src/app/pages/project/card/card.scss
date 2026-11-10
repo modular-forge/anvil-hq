@@ -1,0 +1,147 @@
+:host {
+  display: block;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--s1);
+  color: var(--tx);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    transform 0.12s;
+}
+
+.card:hover {
+  border-color: var(--line2);
+}
+
+.card[aria-pressed='true'] {
+  border-color: var(--hot2);
+}
+
+.card[draggable='true']:active {
+  cursor: grabbing;
+}
+
+// Doing breathes slowly; blocked is tinted; cancelled fades.
+.hot {
+  animation: heat 2.4s ease-in-out infinite;
+}
+
+.blocked {
+  background: color-mix(in srgb, var(--st-blocked) 9%, var(--s1));
+}
+
+.cancelled {
+  opacity: 0.7;
+}
+
+.cancelled .title {
+  text-decoration: line-through;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+.prio {
+  margin-left: auto;
+  color: var(--hot1);
+  font-weight: 600;
+}
+
+.title {
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.parent {
+  color: var(--tx2);
+  font-size: 12px;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tx3);
+  font-size: 11px;
+}
+
+.segs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.segs span {
+  width: 13px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--line2);
+}
+
+.segs .done {
+  background: var(--hotbtn);
+}
+
+.segs .skipped {
+  background: var(--s3);
+}
+
+.labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.labels span {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--s3);
+  color: var(--tx2);
+  font-size: 11px;
+}
+
+.extra {
+  color: var(--tx2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@keyframes heat {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px var(--st-doing),
+      0 0 8px -2px var(--glow);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 1px var(--st-doing),
+      0 0 22px 3px var(--glow);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hot {
+    animation: none;
+    box-shadow:
+      0 0 0 1px var(--st-doing),
+      0 0 12px 0 var(--glow);
+  }
+}

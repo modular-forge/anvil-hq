@@ -177,15 +177,44 @@ The board is an Angular 22.2 app in `ui/` (standalone components, signals, zonel
 detection), with its own `package.json`, lockfile and `.npmrc`. It is the one build-time
 exception to "no build step": `npm run build` writes it to `ui-dist/`, which is committed, so a
 clone can run `anvil serve` without installing anything. The production build has no hashed file
-names and is deterministic; CI rebuilds it and fails when the committed copy differs.
+names and is deterministic; CI rebuilds it and fails when the committed copy differs. After
+`ng build`, `ui/scripts/normalize-eol.ts` rewrites CRLF line endings as LF (some third-party
+licence texts ship with CRLF), so the output has the same bytes on every system.
 
 - `core/`: the API client (`api.ts`, which adds the token header), the change feed
   (`change-feed.ts`, Server-Sent Events read with `fetch`), the store (`space-store.ts`: the
   space overview and git status as signals, refreshed on each change, polling every 5 seconds
   when the feed says it cannot watch), the token (`token.ts`) and the theme (`theme.ts`).
 - `shell/`: the sidebar, the top bar, and the locked screen shown without a valid token.
-- `shared/`: icons (the design's own SVG paths, no icon package), the logo, small components.
-- `pages/`: one folder per route, lazy-loaded.
+- `shared/`: icons (the design's own SVG paths, no icon package), the logo, the dialogs and the
+  notices (screen reader announcements and visible errors).
+- `pages/`: one folder per route, lazy-loaded. `pages/project/` holds the board.
+
+**The project board.** One column per status (cancelled on demand), a card per item, and the
+selected item (`?item=AB-1` in the URL, so a reload keeps it) in a panel beside the board.
+`project-board.ts` owns the board's state and every change it makes:
+
+- **Moving** a card: drag it to another column, press Shift ← → on it (or in the panel), or
+  pick a status in the panel. Cards are buttons; after a keyboard move the focus follows the card
+  and the move is announced. Released is never a target: only publishing a release gets there.
+- **What a move needs** comes first, in a dialog: a reason for blocked and cancelled; for done,
+  the unchecked steps and open tasks if there are any (and nothing is sent), otherwise optional
+  evidence. Without it the server saves `confirmed by user (board)`. After the last open task of
+  a feature or bug closes, the board offers to close the parent too, never on its own.
+- **Steps** are checkboxes; skipping one asks for the reason. The panel also adds steps, moves an
+  item to another project and cancels it.
+- **One change at a time.** Changes queue up: each waits for the previous one's dialog, write
+  and reload, then acts on the item as it is by then. Each write's answer replaces the item with
+  its new ETag at once. So quick key presses move a card one column each, and the board never
+  sends a stale ETag or trips over its own changes.
+- **Conflicts.** A `409` opens the "changed on disk" dialog with the differences between the
+  item the board had and the one on disk (`itemDiff`), then reloads. Nothing was overwritten.
+- **Read-only.** While the data space does not validate, cards cannot be dragged, the panel's
+  controls are disabled and a notice says why.
+
+Dialogs use the native modal `<dialog>`: the browser traps the focus, makes the page behind it
+inert and closes it with Escape. Item bodies are shown as paragraphs and lists built from data,
+never as HTML, with mentions of other items turned into links.
 
 **The token** reaches the page in the fragment. `main.ts` moves it to `sessionStorage` and
 removes it from the address bar before the router starts, so it never shows in the URL again,
@@ -197,7 +226,8 @@ board never loads anything from another origin, which the Content-Security-Polic
 **Theme**: dark (Graphite) or light (Bone) tokens in `ui/src/styles.scss`. The board follows
 the system until the user picks one; the choice is kept in `localStorage`.
 
-**Tests**: Vitest unit tests through `ng test`, and Playwright end-to-end tests (`ui/e2e/`)
+**Tests**: Vitest unit tests through `ng test`, and Playwright end-to-end tests (`ui/e2e/`; the
+item tests run in order, each leaving the data as the next expects)
 that start the real `anvil serve` over a git copy of `examples/` and drive the built board in
 the Chrome already installed on the machine or CI runner, so no browser is downloaded.
 

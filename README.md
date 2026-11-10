@@ -5,9 +5,9 @@ features, bugs, decisions and ideas live as JSON and Markdown files in a git rep
 own, so every change has history and a backup. The `anvil` command reads and writes them, a local
 web board shows them, and Claude Code sessions share the same state through it.
 
-> **Status:** early development. The CLI works and `anvil serve` opens the local board, which so
-> far shows the projects and their counts; its views and the Claude Code integration are not
-> built yet.
+> **Status:** early development. The CLI works and `anvil serve` opens the local board: each
+> project's board, with items moved by dragging or from the keyboard, and their details. Home,
+> Inbox, General, the journal and the Claude Code integration are not built yet.
 
 ## Requirements
 

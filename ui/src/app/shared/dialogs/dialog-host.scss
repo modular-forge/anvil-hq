@@ -1,0 +1,190 @@
+dialog {
+  width: min(440px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--line2);
+  border-radius: 16px;
+  background: var(--s1);
+  color: var(--tx);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 45%);
+}
+
+dialog.danger {
+  border-color: color-mix(in srgb, var(--st-blocked) 50%, var(--line2));
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.cap {
+  margin: 0;
+  padding: 16px 20px 0;
+  color: var(--tx3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+h2 {
+  margin: 0;
+  padding: 6px 20px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 20px 18px;
+  color: var(--tx2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.body p {
+  margin: 0;
+}
+
+.body b {
+  color: var(--tx);
+}
+
+.note {
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+input,
+select,
+textarea {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--line2);
+  border-radius: 9px;
+  background: var(--s2);
+  color: var(--tx);
+  font-size: 14px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.list,
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps {
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--s2);
+  color: var(--tx);
+  text-align: left;
+  cursor: pointer;
+}
+
+.row .mono {
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+.row .end {
+  margin-left: auto;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 4px;
+  background: var(--dot);
+}
+
+.diff {
+  margin: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+.del {
+  color: var(--st-blocked);
+}
+
+.add {
+  color: var(--st-done);
+}
+
+footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  background: var(--s2);
+}
+
+footer button {
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-m);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ghost {
+  background: transparent;
+  color: var(--tx2);
+  font-weight: 500;
+}
+
+.hot {
+  background: var(--hotbtn);
+  color: var(--hotink);
+}
+
+.block {
+  background: var(--st-blocked);
+  color: var(--bg);
+}
+
+.done {
+  background: var(--st-done);
+  color: var(--bg);
+}
+
+.outline-danger {
+  border: 1px solid var(--st-blocked);
+  background: transparent;
+  color: var(--st-blocked);
+}

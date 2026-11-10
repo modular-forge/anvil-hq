@@ -1,0 +1,38 @@
+<div class="columns">
+  @for (column of board.columns(); track column.status) {
+    @let info = statuses[column.status];
+    <section
+      class="column"
+      [attr.aria-label]="info?.name"
+      [class.target]="over() === column.status"
+      [class.droppable]="accepts(column.status)"
+      (dragover)="dragover($event, column.status)"
+      (dragleave)="dragleave($event, column.status)"
+      (drop)="drop($event, column.status)"
+    >
+      <h2 class="heading" [style.color]="'var(--st-' + column.status + ')'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path [attr.d]="info?.icon" [attr.stroke-dasharray]="info?.dash || null" />
+        </svg>
+        {{ info?.name }}<span class="count mono">{{ column.items.length }}</span>
+      </h2>
+      <ul class="cards">
+        @for (item of column.items; track item.id) {
+          <li>
+            <anv-card
+              [item]="item"
+              [parentTitle]="parentTitle(item)"
+              [tasks]="tasks().get(item.id) ?? null"
+              [selected]="board.selectedId() === item.id"
+              [movable]="!board.readOnly()"
+              (opened)="board.onSelect(item.id)"
+              (step)="step(item, $event)"
+              (dragStarted)="dragging.set(item)"
+              (dragEnded)="endDrag()"
+            />
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</div>

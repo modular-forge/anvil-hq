@@ -1,0 +1,153 @@
+<dialog #dialog aria-labelledby="dialog-title" (cancel)="$event.preventDefault(); dismiss()" [class.danger]="request()?.kind === 'refused' || request()?.kind === 'conflict'">
+  @if (request(); as r) {
+    @switch (r.kind) {
+      @case ('reason') {
+        <form (submit)="$event.preventDefault(); text().trim() && answer(text().trim())">
+          <p class="cap">{{ r.status === 'blocked' ? 'Moving to blocked' : 'Cancelling' }}</p>
+          <h2 id="dialog-title" class="display">
+            @if (r.status === 'blocked') {
+              Why is <span class="mono">{{ r.item.id }}</span> blocked?
+            } @else {
+              Cancel <span class="mono">{{ r.item.id }}</span>?
+            }
+          </h2>
+          <div class="body">
+            <p>
+              {{
+                r.status === 'blocked'
+                  ? 'The reason stays on the card until it is unblocked.'
+                  : 'Cancelled items are hidden from the board but never deleted. A reason is required.'
+              }}
+            </p>
+            <label class="sr-only" for="dialog-text">Reason</label>
+            <textarea id="dialog-text" rows="3" required [ngModel]="text()" (ngModelChange)="text.set($event)" name="reason"></textarea>
+          </div>
+          <footer>
+            <button type="button" class="ghost" (click)="dismiss()">{{ r.status === 'blocked' ? 'Cancel' : 'Keep it' }}</button>
+            <button type="submit" [class]="r.status === 'blocked' ? 'block' : 'outline-danger'" [disabled]="!text().trim()">
+              {{ r.status === 'blocked' ? 'Block ' + r.item.id : 'Cancel ' + r.item.kind }}
+            </button>
+          </footer>
+        </form>
+      }
+      @case ('done') {
+        <form (submit)="$event.preventDefault(); answer(text().trim())">
+          <p class="cap">Moving to done</p>
+          <h2 id="dialog-title" class="display">Done: what proves it?</h2>
+          <div class="body">
+            <p>Optional here: your click already counts as confirmation. A link helps later.</p>
+            <label class="sr-only" for="dialog-text">Evidence</label>
+            <input id="dialog-text" placeholder="https://… or a short note" [ngModel]="text()" (ngModelChange)="text.set($event)" name="evidence" />
+            <p class="note">Saved as <span class="mono">evidence</span> · Claude must always give one</p>
+          </div>
+          <footer>
+            <button type="button" class="ghost" (click)="answer('')">Skip</button>
+            <button type="submit" class="done">Mark done</button>
+          </footer>
+        </form>
+      }
+      @case ('refused') {
+        <p class="cap">Close refused</p>
+        <h2 id="dialog-title" class="display"><span class="mono">{{ r.item.id }}</span> can't be done yet</h2>
+        <div class="body">
+          @if (r.children.length) {
+            <p>A {{ r.item.kind }} is done only when all its tasks are. Still open:</p>
+            <ul class="list">
+              @for (child of r.children; track child.id) {
+                <li>
+                  <button type="button" class="row" (click)="answer(child.id)">
+                    <span class="dot" [style.--dot]="'var(--st-' + child.fields.status + ')'" aria-hidden="true"></span>
+                    <span class="mono">{{ child.id }}</span>{{ child.fields.title }}
+                    @if (child.progress.total) {
+                      <span class="mono end">{{ child.progress.done + child.progress.skipped }}/{{ child.progress.total }}</span>
+                    }
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+          @if (r.steps.length) {
+            <p>Steps still unchecked:</p>
+            <ul class="steps">
+              @for (step of r.steps; track $index) {
+                <li>{{ step }}</li>
+              }
+            </ul>
+          }
+        </div>
+        <footer>
+          <button type="button" class="ghost" (click)="dismiss()">Close</button>
+          @if (r.children[0]; as first) {
+            <button type="button" class="hot" (click)="answer(first.id)">Open {{ first.id }}</button>
+          }
+        </footer>
+      }
+      @case ('close-parent') {
+        <p class="cap">Last task closed</p>
+        <h2 id="dialog-title" class="display">Close <span class="mono">{{ r.parent.id }}</span> too?</h2>
+        <div class="body">
+          <p>
+            Every task of <b>{{ r.parent.title }}</b> is closed. Its status is never set for you: maybe a task is still
+            missing.
+          </p>
+        </div>
+        <footer>
+          <button type="button" class="ghost" (click)="dismiss()">Not yet</button>
+          <button type="button" class="done" (click)="answer('close')">Close {{ r.parent.id }}</button>
+        </footer>
+      }
+      @case ('skip') {
+        <form (submit)="$event.preventDefault(); text().trim() && answer(text().trim())">
+          <p class="cap">Skipping a step</p>
+          <h2 id="dialog-title" class="display">Skip “{{ r.step }}”?</h2>
+          <div class="body">
+            <p>It stays visible, struck through with its reason, and counts as resolved.</p>
+            <label class="sr-only" for="dialog-text">Reason</label>
+            <input id="dialog-text" required [ngModel]="text()" (ngModelChange)="text.set($event)" name="reason" />
+            <p class="note mono">- [x] ~~{{ r.step }}~~ (skipped: …)</p>
+          </div>
+          <footer>
+            <button type="button" class="ghost" (click)="dismiss()">Cancel</button>
+            <button type="submit" class="hot" [disabled]="!text().trim()">Skip step</button>
+          </footer>
+        </form>
+      }
+      @case ('move') {
+        <form (submit)="$event.preventDefault(); project() && answer(project())">
+          <p class="cap">Move to another project</p>
+          <h2 id="dialog-title" class="display">
+            Move <span class="mono">{{ r.item.id }}</span>{{ r.tasks ? ' and its tasks' : '' }}
+          </h2>
+          <div class="body">
+            <label class="sr-only" for="dialog-project">Target project</label>
+            <select id="dialog-project" [ngModel]="project()" (ngModelChange)="project.set($event)" name="project">
+              @for (p of r.projects; track p.id) {
+                <option [value]="p.id">{{ p.prefix }} · {{ p.name }}</option>
+              }
+            </select>
+            <p class="note">New ids in the target project · old ids stay as aliases</p>
+          </div>
+          <footer>
+            <button type="button" class="ghost" (click)="dismiss()">Cancel</button>
+            <button type="submit" class="hot" [disabled]="!project()">Move {{ r.tasks + 1 }} item{{ r.tasks ? 's' : '' }}</button>
+          </footer>
+        </form>
+      }
+      @case ('conflict') {
+        <p class="cap">Changed on disk</p>
+        <h2 id="dialog-title" class="display"><span class="mono">{{ r.id }}</span> was changed elsewhere</h2>
+        <div class="body">
+          <p>Maybe a Claude session or your editor. Nothing was overwritten.</p>
+          @if (r.lines.length) {
+            <pre class="diff mono" aria-label="What changed">@for (line of r.lines; track $index) {<span [class.del]="line.startsWith('-')" [class.add]="line.startsWith('+')">{{ line }}</span>
+}</pre>
+          }
+        </div>
+        <footer>
+          <button type="button" class="ghost" (click)="answer('discard')">Discard my change</button>
+          <button type="button" class="hot" (click)="answer('reload')">Reload</button>
+        </footer>
+      }
+    }
+  }
+</dialog>

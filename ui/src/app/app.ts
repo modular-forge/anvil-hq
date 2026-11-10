@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SpaceStore } from './core/space-store';
+import { DialogHost } from './shared/dialogs/dialog-host';
+import { NoticesHost } from './shared/notices/notices';
 import { Locked } from './shell/locked/locked';
 import { Sidebar } from './shell/sidebar/sidebar';
 import { Topbar } from './shell/topbar/topbar';
@@ -8,7 +10,7 @@ import { Topbar } from './shell/topbar/topbar';
 @Component({
   selector: 'anv-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, Sidebar, Topbar, Locked],
+  imports: [RouterOutlet, Sidebar, Topbar, Locked, DialogHost, NoticesHost],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
