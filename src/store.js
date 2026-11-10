@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { AnvilError } from './errors.js';
 import { assertInside, createExclusive, removeFile, writeAtomic } from './fsutil.js';
 import { parseSteps, serializeItem } from './item.js';
+import { registryMtime } from './registry.js';
 import { CLOSED_STATUSES, CONTAINER_KINDS, OPEN_STATUSES, closeBlockers } from './rules.js';
 import { indexItems, projectMap, readSpace } from './space.js';
 import { childrenOf, itemProblems, referenceProblems } from './validate.js';
@@ -21,7 +22,7 @@ const LIST_FIELDS = new Set(['related', 'labels', 'links']);
 export function openSpace(dir) {
   const space = readSpace(dir);
   if (space.registryError) throw new AnvilError(`cannot read projects.json: ${space.registryError}`);
-  return { dir, space, projects: projectMap(space.registry), byId: indexItems(space.items) };
+  return { dir, space, registryMtimeMs: registryMtime(dir), projects: projectMap(space.registry), byId: indexItems(space.items) };
 }
 
 export function getProject(ctx, id) {
@@ -304,13 +305,13 @@ function write(ctx, entry, item) {
   writeAtomic(absolute(ctx, entry.file), serializeItem(item), { expectMtimeMs: entry.mtimeMs });
 }
 
-function absolute(ctx, file) {
+export function absolute(ctx, file) {
   const path = join(ctx.dir, file);
   assertInside(ctx.dir, path);
   return path;
 }
 
-function itemPath(projectId, id) {
+export function itemPath(projectId, id) {
   return `projects/${projectId}/items/${id}.md`;
 }
 

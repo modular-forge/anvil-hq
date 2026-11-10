@@ -5,8 +5,8 @@ features, bugs, decisions and ideas live as JSON and Markdown files in a git rep
 own, so every change has history and a backup. The `anvil` command reads and writes them, a local
 web board shows them, and Claude Code sessions share the same state through it.
 
-> **Status:** early development. The data format and the item, step and journal commands work;
-> project commands, the web board and the Claude Code integration are not built yet.
+> **Status:** early development. The CLI works; the web board and the Claude Code integration
+> are not built yet.
 
 ## Requirements
 
@@ -29,6 +29,12 @@ installed, skip `npm link` and add an alias instead, for example `alias av='node
 ## Commands
 
 ```bash
+anvil init [<path>] [--demo]                              # new data space, default on this machine
+anvil project create <id> --prefix AB --kind web --release none [--scaffold]
+anvil project scaffold <id>                               # starting items from the kind's template
+anvil project promote <idea-id> --id <id> --prefix AB --kind mobile --release versioned
+anvil project release <id> <version> [--exclude AB-7]… [--dry-run] [--out notes.md]
+anvil project link                                        # register the current repository
 anvil item create <project> --kind task --title "…" [--parent AB-3] [--step "…"]…
 anvil item list [--project <id>] [--status doing]… [--all]
 anvil item show <id>
@@ -39,8 +45,14 @@ anvil item set <id> --priority high --labels ui,forms     # an empty value remov
 anvil item move <id> <project>                            # new id, old one kept as an alias
 anvil step add <id> "…" | step check <id> <n> | step uncheck <id> <n> | step skip <id> <n> --reason "…"
 anvil journal add <project> "…" | journal list <project>
-anvil validate
+anvil search "…" [--all]                                  # items and journal; --all adds the archive
+anvil archive [--dry-run]                                 # archive what is final for archiveAfterDays
+anvil briefing                                            # open items of the current repo's project
+anvil validate | anvil doctor | anvil migrate
 ```
+
+`anvil doctor` checks the format, the git identity, unpushed commits and, through the
+[GitHub CLI](https://cli.github.com/) (`gh`) if installed, that your data repository is private.
 
 Every command accepts `--json`. Commands that change data validate the result first, write it
 atomically and commit only the files they touched to the data space's git repository. Run

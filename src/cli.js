@@ -1,16 +1,23 @@
-// Argument parsing and command dispatch. Commands return an exit code; nothing here calls
+// Argument parsing and command dispatch. Commands return an exit code (read-only commands) or a
+// result with the paths they touched (commands that write, committed here). Nothing here calls
 // process.exit, so main() can be tested in-process.
 
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { detectProject, briefing } from './briefing.js';
 import { DataDirError, TOOL_ROOT, resolveDataDir } from './data-dir.js';
+import { doctor } from './doctor.js';
 import { AnvilError, UsageError } from './errors.js';
 import { commitPaths } from './git.js';
+import { initSpace } from './init.js';
 import { serializeItem } from './item.js';
+import { archiveItems, search } from './maintenance.js';
+import { migrate } from './migrate.js';
+import { createProject, linkProject, promoteIdea, releaseProject, scaffoldProject } from './projects.js';
 import { OPEN_STATUSES } from './rules.js';
 import {
-  CREATE_STATUSES, SETTABLE_FIELDS, addJournal, addStep, changeStep, createItem, getItem, listJournal,
+  CREATE_STATUSES, SETTABLE_FIELDS, addJournal, addStep, changeStep, createItem, getItem, getProject, listJournal,
   moveItem, openSpace, setFields, setStatus,
 } from './store.js';
 import { childrenOf, validateSpace } from './validate.js';
@@ -23,12 +30,109 @@ const GLOBAL_OPTIONS = {
 };
 
 const STATUS_ORDER = ['doing', 'blocked', 'todo', 'backlog', 'done', 'released', 'cancelled'];
+const PROJECT_OPTIONS = {
+  prefix: { type: 'string' }, name: { type: 'string' }, kind: { type: 'string' }, release: { type: 'string' },
+};
 
+// Each command: usage, summary, args (a trailing ? marks an optional one), options, and one of
+//   standalone: run({ values, args, io }) → exit code, without opening the data space;
+//   read:       run({ ctx, values, args, io }) → exit code;
+//   default:    run({ ctx, values, args, io, now }) → { paths, message, … }, committed afterwards.
 const COMMANDS = {
+  init: {
+    usage: 'init [<path>] [--demo] [--default] [--git-email <email>] [--git-name <name>]',
+    summary: 'Create a data space (default: the current folder) and make it the default on this machine',
+    args: ['path?'],
+    options: { demo: { type: 'boolean', default: false }, default: { type: 'boolean', default: false }, 'git-email': { type: 'string' }, 'git-name': { type: 'string' } },
+    standalone: true,
+    run: runInit,
+  },
   validate: {
     usage: 'validate',
     summary: 'Check the whole data space against the format rules',
+    standalone: true,
     run: runValidate,
+  },
+  doctor: {
+    usage: 'doctor',
+    summary: 'Check format, git identity, unpushed commits and that the data remote is private',
+    standalone: true,
+    run: runDoctor,
+  },
+  briefing: {
+    usage: 'briefing [--project <id>]',
+    summary: 'Summary of the open items of the current repository\'s project, for a session hook',
+    options: { project: { type: 'string' } },
+    standalone: true,
+    run: runBriefing,
+  },
+  search: {
+    usage: 'search "<text>" [--project <id>] [--all]',
+    summary: 'Search items and journal notes; archived items only with --all',
+    args: ['text'],
+    options: { project: { type: 'string' }, all: { type: 'boolean', default: false } },
+    read: true,
+    run: runSearch,
+  },
+  archive: {
+    usage: 'archive [--dry-run]',
+    summary: 'Move items that have been in their final status for archiveAfterDays to the archive',
+    options: { 'dry-run': { type: 'boolean', default: false } },
+    run: ({ ctx, values, now }) => archiveItems(ctx, now, { dryRun: values['dry-run'] }),
+    print: (r) => (r.archived.length
+      ? r.archived.map((a) => `${a.id}: ${a.from} → ${a.to}`).join('\n')
+      : `Nothing has been in its final status for ${r.days} days.`),
+  },
+  migrate: {
+    usage: 'migrate',
+    summary: 'Upgrade the data space to the current format version',
+    run: ({ ctx }) => migrate(ctx),
+    print: (r) => (r.from === r.to ? `Already at format version ${r.to}.` : `Migrated from format version ${r.from} to ${r.to}.`),
+  },
+  'project create': {
+    usage: 'project create <id> --prefix <XX> --kind <kind> --release <versioned|none> [--name] [--summary] [--state] [--repo owner/name]… [--notion <url>] [--scaffold]',
+    summary: 'Add a project to projects.json, optionally with its starting items',
+    args: ['id'],
+    options: {
+      ...PROJECT_OPTIONS, summary: { type: 'string' }, state: { type: 'string' }, repo: { type: 'string', multiple: true },
+      notion: { type: 'string' }, scaffold: { type: 'boolean', default: false },
+    },
+    run: ({ ctx, values, args, now }) => {
+      const created = createProject(ctx, { ...values, id: args.id, repos: values.repo ?? [] });
+      if (!values.scaffold) return created;
+      const scaffold = scaffoldProject(openSpace(ctx.dir), args.id, now);
+      return { ...created, created: scaffold.created, paths: [...created.paths, ...scaffold.paths] };
+    },
+    print: (r) => `Created project ${r.id}${r.created ? ` with ${r.created.length} starting item(s)` : ''}`,
+  },
+  'project scaffold': {
+    usage: 'project scaffold <id>',
+    summary: 'Create the starting items of the project\'s kind; skips titles it already has',
+    args: ['id'],
+    run: ({ ctx, args, now }) => scaffoldProject(ctx, args.id, now),
+    print: (r) => `Created ${r.created.length ? r.created.join(', ') : 'nothing'} from the ${r.template ?? 'missing'} template${r.skipped.length ? `; skipped ${r.skipped.length} existing title(s)` : ''}`,
+  },
+  'project promote': {
+    usage: 'project promote <idea-id> --id <id> --prefix <XX> --kind <kind> --release <versioned|none> [--name]',
+    summary: 'Turn an idea into a new project in state idea, with the idea as its first item',
+    args: ['idea'],
+    options: { ...PROJECT_OPTIONS, id: { type: 'string' } },
+    run: ({ ctx, values, args, now }) => promoteIdea(ctx.dir, args.idea, values, now),
+    print: (r) => `Created project ${r.id}; the idea is now ${r.item}${r.created.length ? `, plus ${r.created.length} starting item(s)` : ''}`,
+  },
+  'project release': {
+    usage: 'project release <id> <version> [--exclude <item>]… [--out <file>] [--dry-run]',
+    summary: 'Mark the done items as released in a version and print the release notes',
+    args: ['id', 'version'],
+    options: { exclude: { type: 'string', multiple: true }, out: { type: 'string' }, 'dry-run': { type: 'boolean', default: false } },
+    run: runRelease,
+    print: (r) => `${r.dryRun ? 'Would release' : 'Released'} ${r.released.join(', ')} in ${r.version}${r.out ? `; notes written to ${r.out}` : `\n\n${r.notes}`}`,
+  },
+  'project link': {
+    usage: 'project link [--id <id>] [--prefix <XX> --kind <kind> --release <versioned|none>] [--name] [--state]',
+    summary: 'Register the project of the current git repository, or add the repository to it',
+    options: { ...PROJECT_OPTIONS, id: { type: 'string' }, state: { type: 'string' } },
+    run: ({ ctx, values, io }) => linkProject(ctx, io.cwd, values),
   },
   'item create': {
     usage: 'item create <project> --kind <kind> --title "…" [--status] [--parent] [--priority] [--labels a,b] [--body "…"] [--step "…"]…',
@@ -42,7 +146,7 @@ const COMMANDS = {
       for (const name of ['kind', 'title']) if (!values[name]) throw new UsageError(`item create needs --${name}`);
       return createItem(ctx, { project: args.project, ...values, steps: values.step ?? [] }, now);
     },
-    print: (result) => `Created ${result.id} (${result.file})`,
+    print: (r) => `Created ${r.id} (${r.file})`,
   },
   'item show': {
     usage: 'item show <id>',
@@ -80,7 +184,7 @@ const COMMANDS = {
     summary: 'Move an item, and its child tasks, to another project',
     args: ['id', 'project'],
     run: ({ ctx, args }) => moveItem(ctx, args.id, args.project),
-    print: (result) => `Moved ${result.moved.map(([from, to]) => `${from} → ${to}`).join(', ')}`,
+    print: (r) => `Moved ${r.moved.map(([from, to]) => `${from} → ${to}`).join(', ')}`,
   },
   'step add': {
     usage: 'step add <id> "<text>"',
@@ -174,28 +278,49 @@ async function dispatch(argv, io) {
     io.stdout.write(`Usage: anvil ${command.usage}\n\n${command.summary}\n`);
     return 0;
   }
+  const args = bindArgs(command, positionals.slice(name.split(' ').length));
 
-  const given = positionals.slice(name.split(' ').length);
-  const expected = command.args ?? [];
-  if (given.length !== expected.length) {
-    throw new UsageError(`expected ${expected.length ? expected.map((a) => `<${a}>`).join(' ') : 'no arguments'}\nUsage: anvil ${command.usage}`);
-  }
-  const args = Object.fromEntries(expected.map((arg, i) => [arg, given[i]]));
-
-  if (name === 'validate') return command.run({ values, io });
+  if (command.standalone) return command.run({ values, args, io });
   const { dir } = resolveDataDir({ flag: values.data, env: io.env, cwd: io.cwd });
   const ctx = openSpace(dir);
   if (command.read) return command.run({ ctx, values, args, io });
 
   const result = command.run({ ctx, values, args, io, now: io.now() });
-  const commit = commitPaths(dir, result.paths, result.message);
+  const commit = result.paths.length ? commitPaths(dir, result.paths, result.message) : null;
   if (values.json) {
     io.stdout.write(`${JSON.stringify({ ...result, commit }, null, 2)}\n`);
-  } else {
-    io.stdout.write(`${command.print ? command.print(result) : result.message}\n`);
-    io.stdout.write(commit.committed ? `Committed ${commit.hash}\n` : `Not committed: ${commit.reason}\n`);
-    if (result.hint) io.stdout.write(`Hint: ${result.hint}\n`);
+    return 0;
   }
+  io.stdout.write(`${command.print ? command.print(result) : result.message}\n`);
+  if (commit) io.stdout.write(commit.committed ? `Committed ${commit.hash}\n` : `Not committed: ${commit.reason}\n`);
+  if (result.hint) io.stdout.write(`Hint: ${result.hint}\n`);
+  return 0;
+}
+
+function bindArgs(command, given) {
+  const expected = command.args ?? [];
+  const required = expected.filter((arg) => !arg.endsWith('?')).length;
+  if (given.length < required || given.length > expected.length) {
+    const shown = expected.length ? expected.map((a) => (a.endsWith('?') ? `[<${a.slice(0, -1)}>]` : `<${a}>`)).join(' ') : 'no arguments';
+    throw new UsageError(`expected ${shown}\nUsage: anvil ${command.usage}`);
+  }
+  return Object.fromEntries(expected.map((arg, i) => [arg.replace(/\?$/, ''), given[i]]));
+}
+
+function runInit({ values, args, io }) {
+  const result = initSpace(resolve(io.cwd, args.path ?? '.'), {
+    demo: values.demo, setDefault: values.default, gitEmail: values['git-email'], gitName: values['git-name'], env: io.env,
+  });
+  if (values.json) {
+    io.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return 0;
+  }
+  io.stdout.write(`Created a data space in ${result.dir}${result.demo ? ' with the demo projects' : ''}\n`);
+  io.stdout.write(result.commit.committed ? `Committed ${result.commit.hash}\n` : `Not committed: ${result.commit.reason}\n`);
+  io.stdout.write(result.config.written
+    ? `Default data space on this machine: ${result.dir} (${result.config.file})\n`
+    : `The default data space on this machine is still ${result.config.data}; use --default to change it.\n`);
+  io.stdout.write('Next: keep it in a private repository, for example: git remote add origin <url> && git push -u origin main\n');
   return 0;
 }
 
@@ -212,6 +337,53 @@ function runValidate({ values, io }) {
     io.stdout.write(`\n${errors.length} problem(s) in ${files} file(s)\n`);
   }
   return errors.length === 0 ? 0 : 1;
+}
+
+function runDoctor({ values, io }) {
+  const { dir } = resolveDataDir({ flag: values.data, env: io.env, cwd: io.cwd });
+  const results = doctor(dir);
+  if (values.json) {
+    io.stdout.write(`${JSON.stringify(results, null, 2)}\n`);
+  } else {
+    const marks = { ok: 'ok  ', warn: 'warn', fail: 'FAIL' };
+    for (const r of results) io.stdout.write(`${marks[r.status]}  ${r.check.padEnd(11)} ${r.detail}\n`);
+  }
+  return results.some((r) => r.status === 'fail') ? 1 : 0;
+}
+
+/** Never fails: a session hook must not break a session. Problems go to stderr only. */
+function runBriefing({ values, io }) {
+  try {
+    const { dir } = resolveDataDir({ flag: values.data, env: io.env, cwd: io.cwd });
+    const ctx = openSpace(dir);
+    const project = values.project ? getProject(ctx, values.project) : detectProject(ctx, io.cwd);
+    if (project) io.stdout.write(briefing(ctx, project));
+  } catch (error) {
+    io.stderr.write(`anvil briefing: ${error.message}\n`);
+  }
+  return 0;
+}
+
+function runSearch({ ctx, values, args, io }) {
+  if (values.project) getProject(ctx, values.project);
+  const { items, journal } = search(ctx, args.text, { project: values.project, includeArchive: values.all });
+  if (values.json) {
+    io.stdout.write(`${JSON.stringify({ items, journal }, null, 2)}\n`);
+    return 0;
+  }
+  if (!items.length && !journal.length) io.stdout.write('No matches.\n');
+  for (const r of items) io.stdout.write(`${r.id}  ${r.status.padEnd(9)} ${r.title}${r.archived ? ' (archived)' : ''}\n`);
+  for (const hit of journal) io.stdout.write(`${hit.file}:${hit.line}  ${hit.text}\n`);
+  return 0;
+}
+
+function runRelease({ ctx, values, args, now }) {
+  const out = values.out && resolve(values.out);
+  if (out && existsSync(out)) throw new AnvilError(`${out} already exists; anvil does not overwrite it (print the notes and paste them instead)`);
+  const dryRun = values['dry-run'];
+  const result = releaseProject(ctx, args.id, args.version, { exclude: values.exclude ?? [], dryRun }, now);
+  if (out && !dryRun) writeFileSync(out, `${result.notes}\n`, { flag: 'wx' });
+  return { ...result, out: dryRun ? undefined : out };
 }
 
 function runShow({ ctx, values, args, io }) {
@@ -265,7 +437,7 @@ function runList({ ctx, values, io }) {
 }
 
 function usage() {
-  const lines = Object.values(COMMANDS).map((c) => `  ${c.usage.split(' ').slice(0, 2).join(' ').padEnd(14)} ${c.summary}`);
+  const lines = Object.entries(COMMANDS).map(([name, c]) => `  ${name.padEnd(16)} ${c.summary}`);
   return `Usage: anvil <command> [options]
 
 Commands:

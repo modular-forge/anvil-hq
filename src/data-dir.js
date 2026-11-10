@@ -82,7 +82,7 @@ function searchUpwards(start) {
  * repository. The made-up data space in examples/ is the only exception.
  */
 export function assertOutsideTool(dir, toolRoot = TOOL_ROOT) {
-  const real = realpathSync(dir);
+  const real = existsSync(dir) ? realpathSync(dir) : resolve(dir);
   const root = realpathSync(toolRoot);
   if (!isInside(real, root)) return;
   if (isInside(real, join(root, 'examples'))) return;

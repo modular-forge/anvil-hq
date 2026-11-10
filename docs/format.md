@@ -166,7 +166,26 @@ journal.
 
 ## Templates
 
-`kind` picks a template of starting items, applied by `anvil project scaffold`. anvil ships one
-per kind in `templates/<kind>.json`; a data space can replace one with its own
-`templates/<kind>.json`. Scaffolding never overwrites an existing item. The template format is
-documented with the `project scaffold` command.
+`kind` picks a template of starting items, applied by `anvil project scaffold` (and by
+`project create --scaffold` and `project promote`). anvil ships one per kind in its own
+`templates/<kind>.json`; a data space replaces one with its own `templates/<kind>.json`. The
+format is checked by [`schema/template.schema.json`](../schema/template.schema.json):
+
+```json
+{
+  "items": [
+    { "kind": "task", "title": "Set up backups and test a restore", "priority": "high",
+      "labels": ["setup"], "body": "Optional text.", "steps": ["Off-site copy", "Test a restore"] }
+  ]
+}
+```
+
+Only `kind` and `title` are required. Items are created in `backlog`. The title identifies a
+template item: scaffolding skips any title the project already has (case-insensitive, archive
+included), so it never duplicates or overwrites anything.
+
+## Marker in project repositories
+
+A project repository may hold an `.anvil.json` file at its root with `{ "project": "<id>" }`.
+`anvil briefing` and `anvil project link` use it before falling back to the `origin` remote.
+It holds nothing else, so it reveals nothing about anyone's data.
