@@ -1,0 +1,56 @@
+<nav aria-label="Main" class="sidebar">
+  <a routerLink="/" class="logo-link" aria-label="anvil, go to Home">
+    <anv-logo />
+    <span class="display wordmark">anvil</span>
+  </a>
+
+  <ul class="links">
+    <li>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">
+        <anv-icon name="home" />Home
+      </a>
+    </li>
+    <li>
+      <a routerLink="/inbox" routerLinkActive="active" ariaCurrentWhenActive="page">
+        <anv-icon name="inbox" />Inbox
+        @if (store.inboxOpen(); as open) {
+          <span class="count mono" [attr.aria-label]="open + ' open'">{{ open }}</span>
+        }
+      </a>
+    </li>
+    <li>
+      <a routerLink="/general" routerLinkActive="active" ariaCurrentWhenActive="page">
+        <anv-icon name="general" />General
+      </a>
+    </li>
+  </ul>
+
+  @for (group of groups(); track group.label) {
+    <section class="group" [attr.aria-label]="group.label">
+      <h2 class="group-name">{{ group.label }}</h2>
+      <ul class="links">
+        @for (project of group.projects; track project.id) {
+          <li>
+            <a [routerLink]="['/projects', project.id]" routerLinkActive="active" ariaCurrentWhenActive="page">
+              <span class="prefix mono">{{ project.prefix }}</span>
+              <span class="name">{{ project.name }}</span>
+              @if (doing(project)) {
+                <span class="doing" title="Work in progress"><span class="sr-only">, work in progress</span></span>
+              }
+            </a>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <div class="foot">
+    @if (store.space(); as space) {
+      <span class="dir mono" [title]="space.dir">{{ space.dir }}</span>
+    }
+    <div role="group" aria-label="Theme" class="theme">
+      <button type="button" [attr.aria-pressed]="theme.theme() === 'dark'" (click)="theme.set('dark')">Dark</button>
+      <button type="button" [attr.aria-pressed]="theme.theme() === 'light'" (click)="theme.set('light')">Light</button>
+    </div>
+  </div>
+</nav>

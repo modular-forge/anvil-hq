@@ -5,8 +5,9 @@ features, bugs, decisions and ideas live as JSON and Markdown files in a git rep
 own, so every change has history and a backup. The `anvil` command reads and writes them, a local
 web board shows them, and Claude Code sessions share the same state through it.
 
-> **Status:** early development. The CLI works and `anvil serve` starts the local server and its
-> API; the web board itself and the Claude Code integration are not built yet.
+> **Status:** early development. The CLI works and `anvil serve` opens the local board, which so
+> far shows the projects and their counts; its views and the Claude Code integration are not
+> built yet.
 
 ## Requirements
 
@@ -143,6 +144,22 @@ This repository is public, so personal data must never reach it. Three layers gu
 
 CI also runs `npm run check` on Linux and Windows with Node 24 and 26. Its actions are pinned by
 full commit SHA.
+
+### The board
+
+The web board is an Angular app in `ui/`, with its own dependencies. Its build is committed in
+`ui-dist/`, so using anvil never needs them; changing the board does:
+
+```bash
+cd ui
+npm ci                      # install scripts disabled in ui/.npmrc
+npm start                   # dev server on http://127.0.0.1:4200, API proxied to anvil serve
+npm run check               # lint, type checks, unit tests and the build into ../ui-dist
+npm run e2e                 # end-to-end tests in your installed Chrome
+```
+
+For the dev server, start `anvil serve` first and open `http://127.0.0.1:4200/#token=…` with the
+token it printed. CI rebuilds the board and fails if the committed `ui-dist/` differs.
 
 How the code is organised, and why, is in [docs/architecture.md](docs/architecture.md).
 

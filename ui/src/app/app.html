@@ -1,0 +1,19 @@
+@if (store.state() === 'unauthorized') {
+  <anv-locked />
+} @else {
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="shell">
+    <anv-sidebar />
+    <div class="column">
+      <anv-topbar />
+      <main id="main" tabindex="-1">
+        @if (store.state() === 'offline') {
+          <p class="notice" role="status">
+            The board cannot reach <span class="mono">anvil serve</span>. Is it still running? It retries on its own.
+          </p>
+        }
+        <router-outlet />
+      </main>
+    </div>
+  </div>
+}

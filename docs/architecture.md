@@ -118,6 +118,10 @@ Static files are limited to known types inside `ui-dist/`, never dotfiles; paths
 extension are app routes and get `index.html`. Until the board is built, a placeholder page says
 so.
 
+**Development.** `npm start` in `ui/` runs Angular's dev server on `127.0.0.1:4200` and
+proxies `/api` to `anvil serve` on 4747, rewriting the `Origin` header so the server's origin
+check still passes.
+
 **Read API.** `GET /api/space` (projects with counts per status, validation problems, `readOnly`
 when the space does not validate, and a `stamp` that changes with any file), `/api/items`
 (`?project=`, `?all=1` adds cancelled and archived items), `/api/items/<id>` (an id or alias;
@@ -166,6 +170,36 @@ ignored. If watching is unavailable or fails, it sends `mode` with `{ watching: 
 board polls `/api/space` every 5 seconds, comparing `stamp`. Because the stream also needs the
 token header, the board reads it with `fetch` instead of `EventSource`, which cannot send
 headers.
+
+## The board
+
+The board is an Angular 22.2 app in `ui/` (standalone components, signals, zoneless change
+detection), with its own `package.json`, lockfile and `.npmrc`. It is the one build-time
+exception to "no build step": `npm run build` writes it to `ui-dist/`, which is committed, so a
+clone can run `anvil serve` without installing anything. The production build has no hashed file
+names and is deterministic; CI rebuilds it and fails when the committed copy differs.
+
+- `core/`: the API client (`api.ts`, which adds the token header), the change feed
+  (`change-feed.ts`, Server-Sent Events read with `fetch`), the store (`space-store.ts`: the
+  space overview and git status as signals, refreshed on each change, polling every 5 seconds
+  when the feed says it cannot watch), the token (`token.ts`) and the theme (`theme.ts`).
+- `shell/`: the sidebar, the top bar, and the locked screen shown without a valid token.
+- `shared/`: icons (the design's own SVG paths, no icon package), the logo, small components.
+- `pages/`: one folder per route, lazy-loaded.
+
+**The token** reaches the page in the fragment. `main.ts` moves it to `sessionStorage` and
+removes it from the address bar before the router starts, so it never shows in the URL again,
+in history or in bookmarks. A new tab needs the printed link again.
+
+**Fonts** come from `@fontsource-variable` packages and are bundled into `ui-dist/media/`: the
+board never loads anything from another origin, which the Content-Security-Policy enforces.
+
+**Theme**: dark (Graphite) or light (Bone) tokens in `ui/src/styles.scss`. The board follows
+the system until the user picks one; the choice is kept in `localStorage`.
+
+**Tests**: Vitest unit tests through `ng test`, and Playwright end-to-end tests (`ui/e2e/`)
+that start the real `anvil serve` over a git copy of `examples/` and drive the built board in
+the Chrome already installed on the machine or CI runner, so no browser is downloaded.
 
 ## Errors and exit codes
 

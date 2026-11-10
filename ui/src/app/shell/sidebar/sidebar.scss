@@ -1,0 +1,163 @@
+:host {
+  display: block;
+  border-bottom: 1px solid var(--line);
+  background-color: var(--s1);
+  background-image: repeating-linear-gradient(90deg, var(--brushed) 0 1px, transparent 1px 3px);
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 18px 14px;
+}
+
+.logo-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px;
+  color: var(--tx);
+  text-decoration: none;
+}
+
+.wordmark {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.links a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: var(--radius-m);
+  color: var(--tx2);
+  text-decoration: none;
+}
+
+.links a:hover {
+  color: var(--tx);
+  background: var(--s2);
+}
+
+.links a.active {
+  color: var(--tx);
+  background: var(--s3);
+}
+
+.count {
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--s3);
+  color: var(--tx);
+  font-size: 12px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.group-name {
+  margin: 0;
+  padding: 0 10px 4px;
+  color: var(--tx3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.prefix {
+  width: 28px;
+  flex: none;
+  color: var(--tx3);
+  font-size: 11px;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doing {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  margin-left: auto;
+  border-radius: 4px;
+  background: var(--st-doing);
+  box-shadow: 0 0 8px var(--glow);
+}
+
+.foot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.dir {
+  overflow: hidden;
+  padding: 0 10px;
+  color: var(--tx3);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.theme {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--s2);
+}
+
+.theme button {
+  flex: 1;
+  height: 30px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--tx2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.theme button[aria-pressed='true'] {
+  background: var(--s3);
+  color: var(--tx);
+}
+
+@media (min-width: 900px) {
+  :host {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+  }
+
+  .sidebar {
+    min-height: 100%;
+  }
+}

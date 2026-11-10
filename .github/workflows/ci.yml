@@ -29,6 +29,35 @@ jobs:
       # Type check, unit tests, example data space and the personal-data check on every tracked file.
       - run: npm run check
 
+  ui:
+    name: ui (lint, unit, build, e2e)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      # ui-dist/ is committed so that cloning the repository is enough to run the board. It must
+      # be exactly what the sources build: rebuild it and fail on any difference.
+      - name: ui-dist/ matches the sources
+        run: |
+          git status --porcelain -- ../ui-dist
+          test -z "$(git status --porcelain -- ../ui-dist)" || { echo "ui-dist/ is out of date: run npm run build in ui/ and commit it"; exit 1; }
+      # The board against the real `anvil serve`, in the Chrome preinstalled on the runner:
+      # no browser download.
+      - run: npx playwright test
+
   secrets:
     name: secrets (gitleaks)
     runs-on: ubuntu-latest

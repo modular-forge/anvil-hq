@@ -1,7 +1,7 @@
 # anvil-hq
 
-A local, dependency-free personal project manager: the `anvil` CLI, a local web board (later)
-and Claude Code integration (later). Public repository (MIT); each user's data lives in a
+A local, dependency-free personal project manager: the `anvil` CLI, a local web board (Angular,
+in progress) and Claude Code integration (later). Public repository (MIT); each user's data lives in a
 separate private repository.
 
 ## Ground rules
@@ -26,7 +26,8 @@ separate private repository.
 | -------- | ----------------------------------------------------------------------------- |
 | Runtime  | Node.js 24 or later (`engines` in `package.json`), ES modules                 |
 | Language | TypeScript, run directly by Node (type stripping): no build step, no output files |
-| Deps     | None at runtime: only `node:` built-in modules. Dev only: `typescript`, `@types/node` (pinned). The future Angular UI is the one build-time exception |
+| Deps     | None at runtime: only `node:` built-in modules. Dev only: `typescript`, `@types/node` (pinned) |
+| Board    | `ui/`: Angular 22.2 (standalone, signals, zoneless), its own `package.json`, lockfile and `.npmrc`. Built into `ui-dist/`, which is committed |
 | Tests    | `node:test` and `node:assert/strict`                                          |
 | Data     | JSON (`projects.json`) and Markdown with a flat header (items)                |
 
@@ -43,10 +44,21 @@ node bin/anvil.ts <command> --data examples   # run the CLI against the example 
 node bin/anvil.ts serve --data examples       # local server on 127.0.0.1:4747 over the example data
 ```
 
+The board (run inside `ui/`):
+
+```bash
+npm ci                 # its own dependencies; install scripts disabled in ui/.npmrc
+npm run check          # lint + typecheck of e2e/configs + unit tests (Vitest) + build into ../ui-dist
+npm start              # dev server on 127.0.0.1:4200; /api goes to a running `anvil serve`
+npm run e2e            # Playwright against the real `anvil serve` over a copy of examples/, in installed Chrome
+npx ng test --include src/app/core/token.spec.ts   # one spec file
+```
+
 ## Definition of done
 
 A task is finished only when `npm run check` passes, and you quote the real result in your
-summary. Never skip, delete or weaken a test, or loosen `tsconfig.json`, to go green.
+summary. If you touched `ui/`, also `npm run check` and `npm run e2e` inside `ui/`, and commit
+the rebuilt `ui-dist/` with the sources: CI fails when it does not match. Never skip, delete or weaken a test, or loosen `tsconfig.json`, to go green.
 
 ## TypeScript rules
 
@@ -56,6 +68,28 @@ summary. Never skip, delete or weaken a test, or loosen `tsconfig.json`, to go g
   `import type` (`verbatimModuleSyntax`).
 - Header values are untrusted text until validated: keep `ItemFields` fields as `string`, and
   narrow with the validators, not with casts. Avoid `any`; use `unknown` and narrow.
+
+## Board rules (`ui/`)
+
+- Angular 22.2 conventions: standalone components, `OnPush`, signals for state (`signal`,
+  `computed`, `input()`, `output()`), `inject()`, built-in control flow, lazy routes. File names
+  without suffixes (`sidebar.ts`, `sidebar.html`, `sidebar.scss`, `sidebar.spec.ts`), selector
+  prefix `anv`.
+- Colours, type and radii come from the CSS custom properties in `ui/src/styles.scss` (the
+  approved design's tokens, dark and light). No raw colours in component styles.
+- Accessibility is part of correctness: semantic HTML, labelled controls, visible focus, no
+  meaning by colour alone, `prefers-reduced-motion` respected. ESLint's template accessibility
+  rules stay on.
+- The board talks to the local server only. The token goes in the `X-Anvil-Token` header, never
+  in a URL; the change feed is read with `fetch`, not `EventSource`.
+- Unit tests: Vitest through `ng test`, one spec next to each file, behaviour through the
+  rendered DOM and public methods. End-to-end tests in `ui/e2e/` use the made-up examples only.
+- `ui/eslint.config.ts` is loaded with Node's type stripping
+  (`--flag unstable_native_nodejs_ts_config` in `npm run lint`), so no `jiti`. Keep the flag.
+- Known advisory: `npm audit` reports `minimatch` < 11.0.1 (moderate, a denial of service from
+  crafted glob patterns) through `eslint` and `typescript-eslint`. Dev-only, and the lint globs
+  are our own. Npm's only fix is a forced major downgrade, which is not allowed: wait for those
+  packages to update, then pick versions at least 7 days old.
 
 ## Supply chain
 
@@ -114,6 +148,8 @@ templates/          # built-in starting items per project kind (generic, public)
 schema/             # JSON Schemas (public contract)
 docs/format.md      # format reference (public contract)
 docs/architecture.md # how the code works: write path, concurrency, errors, tests
+ui/                 # the board's Angular sources (src/app: core, shell, shared, pages), e2e/
+ui-dist/            # the built board, committed; served by anvil serve
 examples/           # made-up data space, used by docs and tests
 test/               # node:test files (.test.ts)
 ```

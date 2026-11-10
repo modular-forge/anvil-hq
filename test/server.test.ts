@@ -67,6 +67,7 @@ describe('server security', () => {
     const { call } = await serve(t);
     for (const reply of [await call('/'), await call('/api/space'), await call('/api/space', { token: false })]) {
       assert.match(String(reply.headers['content-security-policy']), /default-src 'self'.*frame-ancestors 'none'/);
+      assert.match(String(reply.headers['content-security-policy']), /base-uri 'self'/);
       assert.equal(reply.headers['x-content-type-options'], 'nosniff');
       assert.equal(reply.headers['referrer-policy'], 'no-referrer');
     }
