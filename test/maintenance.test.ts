@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, type TestContext } from 'node:test';
 import { briefing, detectProject } from '../src/briefing.ts';
-import { doctor, type CheckResult } from '../src/doctor.ts';
+import { doctor, hookCheck, type CheckResult } from '../src/doctor.ts';
 import { initSpace } from '../src/init.ts';
 import { archiveItems, isFinal, search } from '../src/maintenance.ts';
 import { CURRENT_VERSION, migrate } from '../src/migrate.ts';
@@ -167,7 +167,7 @@ describe('doctor', () => {
     const dir = makeSpace(t, {});
     const git = initRepo(dir);
     git('remote', 'add', 'origin', 'https://github.com/example-org/data.git');
-    const results = doctor(dir, { gh: (slug) => (slug === 'example-org/data' ? { value: 'PRIVATE' } : { error: 'unexpected' }) });
+    const results = doctor(dir, { toolRoot: makeSpace(t, { 'projects.json': undefined }), gh: (slug) => (slug === 'example-org/data' ? { value: 'PRIVATE' } : { error: 'unexpected' }) });
     assert.deepEqual(statuses(results), { format: 'ok', identity: 'ok', uncommitted: 'ok', push: 'warn', private: 'ok' });
   });
 
@@ -180,6 +180,16 @@ describe('doctor', () => {
     assert.equal(results.private, 'fail');
     assert.equal(results.uncommitted, 'warn');
     assert.equal(statuses(doctor(dir, { gh: () => ({ error: 'gh is not installed' }) })).private, 'warn');
+  });
+
+  it('checks the pre-commit hook of the anvil-hq clone it runs from', (t) => {
+    const clone = makeSpace(t, { 'projects.json': undefined, '.githooks/pre-commit': '#!/bin/sh\n' });
+    const git = initRepo(clone);
+    assert.equal(hookCheck(clone)?.status, 'warn');
+    git('config', 'core.hooksPath', '.githooks');
+    assert.equal(hookCheck(clone)?.status, 'ok');
+    assert.equal(hookCheck(join(clone, '.githooks')), null, 'a folder inside another repository is not a clone');
+    assert.equal(hookCheck(makeSpace(t, { 'projects.json': undefined })), null, 'not a git clone: nothing to check');
   });
 });
 

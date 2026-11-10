@@ -72,6 +72,24 @@ The CLI, the future web board and several Claude Code sessions may write at the 
 - **Other machines:** writers on different machines only meet when the user pulls. A duplicate
   id that arrives that way is reported by `anvil validate`.
 
+## Keeping personal data out
+
+The tool is public and every user's data is private, so the repository guards itself in layers:
+
+1. anvil refuses to work on a data space inside its own repository (`assertOutsideTool`), except
+   the made-up one in `examples/`, and never writes outside the data space.
+2. `.gitignore` lists the names of data space files.
+3. The pre-commit hook (`.githooks/pre-commit`, activated with `npm run hooks`) runs
+   `scripts/check-leaks.ts --staged`, which reads the staged content of each file and rejects
+   item files, `projects.json` registries and anything under `projects/<id>/items`, `archive` or
+   `journal` outside `examples/` (`src/leak-guard.ts`). It then runs gitleaks on the staged
+   changes when gitleaks is installed. The hook is a two-command shell script because git runs
+   hooks by file name, and Node only strips types from `.ts` files.
+4. CI runs the same check on every tracked file (`npm run leaks`, part of `npm run check`) and
+   gitleaks on the whole history, with a pinned and checksum-verified gitleaks binary.
+5. `anvil doctor` warns when the hook is not active in the clone anvil runs from, and checks
+   with `gh` that the data repository is private.
+
 ## Errors and exit codes
 
 | Code | Meaning | Error type |

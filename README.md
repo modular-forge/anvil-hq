@@ -88,8 +88,9 @@ anvil briefing                                            # open items of the cu
 anvil validate | anvil doctor | anvil migrate
 ```
 
-`anvil doctor` checks the format, the git identity, unpushed commits and, through the
-[GitHub CLI](https://cli.github.com/) (`gh`) if installed, that your data repository is private.
+`anvil doctor` checks the format, the git identity, unpushed commits, the pre-commit hook of your
+anvil-hq clone and, through the [GitHub CLI](https://cli.github.com/) (`gh`) if installed, that
+your data repository is private.
 
 Every command accepts `--json`. Commands that change data validate the result first, write it
 atomically and commit only the files they touched to the data space's git repository. Run
@@ -118,10 +119,25 @@ check the types; using anvil does not.
 
 ```bash
 npm ci                      # dev dependencies only, install scripts disabled in .npmrc
-npm run check               # type check, unit tests and the example data space
+npm run hooks               # once per clone: activates the pre-commit hook
+npm run check               # type check, unit tests, example data space and personal-data check
 npm run typecheck           # tsc, no output files
 npm test                    # unit tests (node:test)
 ```
+
+This repository is public, so personal data must never reach it. Three layers guard it:
+
+1. **The pre-commit hook** (`.githooks/pre-commit`) rejects any staged file that looks like a data
+   space (an item file, a `projects.json` registry, or a file under `projects/<id>/items`,
+   `archive` or `journal`) outside `examples/`, and runs [gitleaks](https://github.com/gitleaks/gitleaks)
+   on the staged changes if it is installed.
+2. **CI** runs the same personal-data check on every tracked file and gitleaks on the whole
+   history, on every push and pull request. It is an alarm, not a barrier: when it fires, the
+   file is already pushed.
+3. **`anvil doctor`** warns when the hook is not active in your clone.
+
+CI also runs `npm run check` on Linux and Windows with Node 24 and 26. Its actions are pinned by
+full commit SHA.
 
 How the code is organised, and why, is in [docs/architecture.md](docs/architecture.md).
 

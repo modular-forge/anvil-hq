@@ -1,0 +1,14 @@
+#!/bin/sh
+# Pre-commit hook for this public repository: blocks personal data and secrets.
+# Installed with `npm run hooks` (sets core.hooksPath to .githooks). Shell, not TypeScript,
+# because git runs hooks by file name and Node only strips types from .ts files.
+set -e
+
+node scripts/check-leaks.ts --staged
+
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --redact --no-banner
+else
+  echo "pre-commit: gitleaks is not installed, so the commit was not scanned for secrets." >&2
+  echo "pre-commit: install it from https://github.com/gitleaks/gitleaks/releases (CI scans every push)." >&2
+fi
