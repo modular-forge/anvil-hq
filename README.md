@@ -5,8 +5,8 @@ features, bugs, decisions and ideas live as JSON and Markdown files in a git rep
 own, so every change has history and a backup. The `anvil` command reads and writes them, a local
 web board shows them, and Claude Code sessions share the same state through it.
 
-> **Status:** early development. The CLI works; the web board and the Claude Code integration
-> are not built yet.
+> **Status:** early development. The CLI works and `anvil serve` starts the local server with a
+> read-only API; the web board itself and the Claude Code integration are not built yet.
 
 ## Requirements
 
@@ -86,7 +86,12 @@ anvil search "…" [--all]                                  # items and journal;
 anvil archive [--dry-run]                                 # archive what is final for archiveAfterDays
 anvil briefing                                            # open items of the current repo's project
 anvil validate | anvil doctor | anvil migrate
+anvil serve                                               # local board on http://127.0.0.1:4747
 ```
+
+`anvil serve` prints the board's address with a private token after `#token=`. Open that exact
+URL; keep it to yourself. The server only listens on 127.0.0.1 and refuses requests from other
+sites (see [docs/architecture.md](docs/architecture.md#the-local-server)).
 
 `anvil doctor` checks the format, the git identity, unpushed commits, the pre-commit hook of your
 anvil-hq clone and, through the [GitHub CLI](https://cli.github.com/) (`gh`) if installed, that
