@@ -1,3 +1,4 @@
+import { FormsModule } from '@angular/forms';
 import { ChangeDetectionStrategy, Component, ElementRef, Injector, afterNextRender, computed, inject, signal } from '@angular/core';
 import type { ItemSummary } from '../../../core/models';
 import { MOVABLE, STATUSES } from '../../../core/statuses';
@@ -9,7 +10,7 @@ import { ProjectBoard } from '../project-board';
 @Component({
   selector: 'anv-board',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card],
+  imports: [Card, FormsModule],
   templateUrl: './board.html',
   styleUrl: './board.scss',
 })
@@ -22,6 +23,9 @@ export class Board {
   /** The card being dragged, and the column under it. */
   protected readonly dragging = signal<ItemSummary | null>(null);
   protected readonly over = signal<string | null>(null);
+  /** The column whose quick add is open, and what is typed in it. */
+  protected readonly adding = signal<string | null>(null);
+  protected readonly draft = signal('');
 
   /** Closed and total tasks of each feature or bug, by id. */
   protected readonly tasks = computed(() => {
@@ -36,6 +40,23 @@ export class Board {
     }
     return counts;
   });
+
+  protected openAdd(status: string): void {
+    this.adding.set(status);
+    this.draft.set('');
+    afterNextRender(() => this.#host.nativeElement.querySelector<HTMLInputElement>(`#add-${status}`)?.focus(), { injector: this.#injector });
+  }
+
+  protected async add(status: string): Promise<void> {
+    if (await this.board.quickAdd(status, this.draft())) this.draft.set('');
+  }
+
+  protected addKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      this.adding.set(null);
+    }
+  }
 
   protected parentTitle(item: ItemSummary): string | null {
     return item.fields.parent ? (this.board.byId().get(item.fields.parent)?.fields.title ?? null) : null;

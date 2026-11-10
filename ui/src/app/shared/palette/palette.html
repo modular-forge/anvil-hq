@@ -1,0 +1,70 @@
+<dialog #dialog aria-label="Search or run a command" (cancel)="$event.preventDefault(); palette.close()">
+  @if (palette.isOpen()) {
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14M20 20l-4-4" />
+      </svg>
+      <input
+        #input
+        role="combobox"
+        aria-label="Search or run a command"
+        aria-autocomplete="list"
+        aria-controls="palette-list"
+        [attr.aria-expanded]="entries().length > 0"
+        [attr.aria-activedescendant]="activeKey() ? 'palette-' + activeKey() : null"
+        placeholder="Search or run a command"
+        [ngModel]="query()"
+        (ngModelChange)="query.set($event)"
+        (keydown)="keydown($event)"
+      />
+      <button type="button" class="archive" [attr.aria-pressed]="archive()" (click)="archive.set(!archive())">+ archive</button>
+      <span class="esc mono" aria-hidden="true">Esc</span>
+    </div>
+
+    <div id="palette-list" role="listbox" aria-label="Results" class="results">
+      @for (group of groups(); track group.name) {
+        <div role="group" [attr.aria-labelledby]="'palette-group-' + group.name" class="group">
+          <p class="group-name" [id]="'palette-group-' + group.name">{{ group.name }}</p>
+          @for (entry of group.entries; track entry.key) {
+            <div
+              role="option"
+              class="entry"
+              [id]="'palette-' + entry.key"
+              [attr.aria-selected]="entry.key === activeKey()"
+              (click)="choose(entry)"
+              (mousemove)="active.set(entryIndex(entry))"
+              (keydown.enter)="choose(entry)"
+              tabindex="-1"
+            >
+              <span class="icon" [style.color]="entry.tone ? 'var(--st-' + entry.tone + ')' : null" aria-hidden="true">
+                @switch (entry.icon) {
+                  @case ('item') {
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M8 12.5l2.8 2.8L16.5 9.5" /></svg>
+                  }
+                  @case ('project') {
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v12H4zM4 10h16" /></svg>
+                  }
+                  @case ('note') {
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h4" /></svg>
+                  }
+                  @default {
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--hot2)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L5 14h6l-1 7 8-11h-6z" /></svg>
+                  }
+                }
+              </span>
+              <span class="label">{{ entry.label }}</span>
+              <span class="meta">{{ entry.meta }}</span>
+              @if (entry.shortcut) {
+                <span class="key mono">{{ entry.shortcut }}</span>
+              }
+            </div>
+          }
+        </div>
+      } @empty {
+        <p class="empty">Nothing matches “{{ query() }}”. Try an item id like <span class="mono">AB-12</span>.</p>
+      }
+    </div>
+
+    <p class="foot mono" aria-hidden="true">↑ ↓ move · ↵ open · Esc close</p>
+  }
+</dialog>

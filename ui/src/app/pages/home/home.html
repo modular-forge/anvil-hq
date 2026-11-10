@@ -1,0 +1,115 @@
+<header class="head">
+  <h1 class="display">Home</h1>
+  <p class="sub">
+    {{ today }} · {{ projects().length }} projects
+    @if (store.git()?.unpushed; as unpushed) {
+      · {{ unpushed }} not pushed
+    }
+  </p>
+</header>
+
+<section aria-labelledby="now-title" class="now">
+  <div class="section-head">
+    <h2 id="now-title" class="display">Now</h2>
+    <span class="hint">In the fire or stuck, across every project</span>
+  </div>
+  @if (now().length) {
+    <ul class="now-list">
+      @for (item of now(); track item.id) {
+        <li>
+          <a
+            class="now-card"
+            [class.hot]="item.fields.status === 'doing'"
+            [class.blocked]="item.fields.status === 'blocked'"
+            [routerLink]="['/projects', item.project]"
+            [queryParams]="{ item: item.id }"
+          >
+            <span class="top">
+              <span class="mono">{{ projectOf(item)?.prefix }}</span>
+              <span class="mono id">{{ item.id }}</span>
+              <span class="status" [style.color]="'var(--st-' + item.fields.status + ')'">{{ statuses[item.fields.status]?.name }}</span>
+            </span>
+            <span class="title">{{ item.fields.title }}</span>
+            @if (item.progress.total) {
+              <span class="progress">
+                <span class="segs" aria-hidden="true">
+                  @for (seg of segments(item.progress); track $index) {
+                    <span [class]="seg"></span>
+                  }
+                </span>
+                <span class="mono">{{ item.progress.done + item.progress.skipped }}/{{ item.progress.total }}</span>
+              </span>
+            }
+            @if (item.fields.status === 'blocked' && item.fields.reason) {
+              <span class="note">{{ item.fields.reason }}</span>
+            }
+          </a>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="empty">Nothing in doing or blocked. Pick something from a board.</p>
+  }
+</section>
+
+@if (store.inboxOpen(); as waiting) {
+  <a class="inbox" routerLink="/inbox">
+    <span><b>Inbox</b> · {{ waiting }} {{ waiting === 1 ? 'item' : 'items' }} waiting for a project</span>
+    <span class="review">Review <span aria-hidden="true">→</span></span>
+  </a>
+}
+
+@for (group of groups(); track group.label) {
+  <section class="group" [attr.aria-labelledby]="'group-' + group.label">
+    <h2 class="group-name" [id]="'group-' + group.label">{{ group.label }} <span class="mono">{{ group.projects.length }}</span></h2>
+    <ul class="projects">
+      @for (project of group.projects; track project.id) {
+        <li class="project">
+          <a class="project-link" [routerLink]="['/projects', project.id]">
+            <span class="name-row">
+              <span class="mono prefix">{{ project.prefix }}</span>
+              <span class="name">{{ project.name }}</span>
+              @if (project.counts['doing']) {
+                <span class="doing-dot"><span class="sr-only">, work in progress</span></span>
+              }
+            </span>
+            @if (project.summary) {
+              <span class="summary">{{ project.summary }}</span>
+            }
+          </a>
+          <span class="chips">
+            @if (project.kind) {
+              <span class="chip">{{ project.kind }}</span>
+            }
+            @if (project.release === 'versioned') {
+              <span class="chip released">versioned{{ last(project) ? ' · v' + last(project) : '' }}</span>
+            } @else {
+              <span class="chip quiet">no releases</span>
+            }
+          </span>
+          <span class="counts">
+            <span><b>{{ project.counts['doing'] ?? 0 }}</b> doing</span>
+            <span [class.alert]="project.counts['blocked']"><b>{{ project.counts['blocked'] ?? 0 }}</b> blocked</span>
+            <span><b>{{ project.counts['todo'] ?? 0 }}</b> todo</span>
+          </span>
+          @if (safeLink(project.notion) || project.repos?.length) {
+            <span class="links">
+              @if (safeLink(project.notion); as notion) {
+                <a [href]="notion" target="_blank" rel="noopener noreferrer">Notion <span aria-hidden="true">↗</span></a>
+              }
+              @if (project.repos?.length; as repos) {
+                <span>{{ repos }} {{ repos === 1 ? 'repo' : 'repos' }}</span>
+              }
+            </span>
+          }
+        </li>
+      }
+    </ul>
+  </section>
+}
+
+@if (finishedCounts().done || finishedCounts().cancelled) {
+  <button type="button" class="toggle" [attr.aria-pressed]="showFinished()" (click)="showFinished.set(!showFinished())">
+    Show Done · {{ finishedCounts().done }} and Cancelled · {{ finishedCounts().cancelled }}
+  </button>
+}

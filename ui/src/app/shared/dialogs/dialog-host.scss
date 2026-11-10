@@ -72,6 +72,28 @@ textarea {
   resize: vertical;
 }
 
+.pair {
+  display: flex;
+  gap: 8px;
+}
+
+.pair label {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pair .narrow {
+  flex: 0 0 90px;
+}
+
+.label {
+  color: var(--tx3);
+  font-size: 12px;
+}
+
 .list,
 .steps {
   display: flex;

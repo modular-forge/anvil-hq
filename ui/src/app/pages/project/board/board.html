@@ -33,6 +33,17 @@
           </li>
         }
       </ul>
+      @if ((column.status === 'backlog' || column.status === 'todo') && !board.readOnly()) {
+        @if (adding() === column.status) {
+          <form class="add" (submit)="$event.preventDefault(); add(column.status)">
+            <label class="sr-only" [for]="'add-' + column.status">New task in {{ info?.name }}</label>
+            <input [id]="'add-' + column.status" name="title" placeholder="Task title" [ngModel]="draft()" (ngModelChange)="draft.set($event)" (keydown)="addKeydown($event)" />
+            <span class="add-hint">task · {{ info?.name }} · ↵ create · Esc close</span>
+          </form>
+        } @else {
+          <button type="button" class="add-button" (click)="openAdd(column.status)">+ Add to {{ info?.name }}</button>
+        }
+      }
     </section>
   }
 </div>

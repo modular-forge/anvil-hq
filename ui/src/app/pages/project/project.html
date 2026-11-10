@@ -18,12 +18,21 @@
         <p class="summary">{{ project.summary }}</p>
       }
     </div>
+    @if (project.release === 'versioned' && !board.readOnly()) {
+      <a class="release" [routerLink]="['/projects', project.id, 'release']">Publish release</a>
+    }
   </header>
 
   <div class="toolbar">
+    <nav class="views" aria-label="Views">
+      <a [routerLink]="[]" [queryParams]="{ view: null, item: null }" [attr.aria-current]="view() !== 'journal' ? 'page' : null">Board</a>
+      <a [routerLink]="[]" [queryParams]="{ view: 'journal', item: null }" [attr.aria-current]="view() === 'journal' ? 'page' : null">Journal</a>
+    </nav>
+    @if (view() !== 'journal') {
     <button type="button" class="toggle" [attr.aria-pressed]="board.showCancelled()" (click)="board.showCancelled.set(!board.showCancelled())">
       Show cancelled · {{ board.cancelledCount() }}
     </button>
+    }
   </div>
 
   @if (board.readOnly()) {
@@ -32,6 +41,9 @@
     </p>
   }
 
+  @if (view() === 'journal') {
+    <anv-journal [project]="project.id" />
+  } @else {
   <div class="layout">
     @if (board.loaded()) {
       <anv-board class="board" />
@@ -44,6 +56,7 @@
       </aside>
     }
   </div>
+  }
 } @else if (store.state() === 'ready') {
   <h1 class="display">Unknown project</h1>
   <p class="summary">There is no project "{{ id() }}" in this data space.</p>

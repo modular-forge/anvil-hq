@@ -2,7 +2,9 @@ import { ChangeDetectionStrategy, Component, ElementRef, Injector, afterNextRend
 import { Router } from '@angular/router';
 import { Dialogs } from '../../shared/dialogs/dialogs';
 import { SpaceStore } from '../../core/space-store';
+import { RouterLink } from '@angular/router';
 import { Board } from './board/board';
+import { Journal } from './journal/journal';
 import { DetailPanel } from './detail/detail-panel';
 import { ProjectBoard } from './project-board';
 
@@ -14,7 +16,7 @@ const STATE_NAMES: Readonly<Record<string, string>> = {
 @Component({
   selector: 'anv-project',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Board, DetailPanel],
+  imports: [Board, DetailPanel, Journal, RouterLink],
   providers: [ProjectBoard],
   templateUrl: './project.html',
   styleUrl: './project.scss',
@@ -32,6 +34,8 @@ export class ProjectPage {
   readonly id = input.required<string>();
   /** From the ?item= query parameter. */
   readonly item = input<string | undefined>();
+  /** From the ?view= query parameter: the board, or the journal. */
+  readonly view = input<string | undefined>();
 
   protected readonly project = computed(() => this.store.project(this.id()));
   protected readonly stateName = computed(() => STATE_NAMES[this.project()?.state ?? ''] ?? this.project()?.state ?? '');
@@ -39,7 +43,9 @@ export class ProjectPage {
   constructor() {
     effect(() => this.board.projectId.set(this.id()));
     effect(() => this.board.selectedId.set(this.item() ?? null));
-    this.board.onSelect = (id) => void this.#router.navigate([], { queryParams: { item: id }, queryParamsHandling: 'merge' });
+    // Opening an item always shows it on the board.
+    this.board.onSelect = (id) =>
+      void this.#router.navigate([], { queryParams: { item: id, ...(id ? { view: null } : {}) }, queryParamsHandling: 'merge' });
   }
 
   /** Escape closes the panel, unless a dialog is open: then it closes the dialog only. */

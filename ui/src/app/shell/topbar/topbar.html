@@ -6,8 +6,7 @@
     <span class="here">{{ crumbs().here }}</span>
   </p>
 
-  <!-- The command palette and the new item dialog arrive with the board's views. -->
-  <button type="button" class="search" disabled title="Coming soon">
+  <button type="button" class="search" (click)="palette.open()">
     <anv-icon name="search" [size]="15" />
     <span class="label">Search or run a command</span>
     <span class="key mono">Ctrl K</span>
@@ -19,7 +18,7 @@
     </span>
   }
 
-  <button type="button" class="new" disabled title="Coming soon">
+  <button type="button" class="new" (click)="composer.open()">
     <anv-icon name="plus" [size]="14" [strokeWidth]="2.6" />New item<span class="key mono">N</span>
   </button>
 </header>

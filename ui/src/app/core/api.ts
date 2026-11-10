@@ -1,7 +1,10 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders, type HttpInterceptorFn } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, type Observable } from 'rxjs';
-import type { GitStatus, HistoryEntry, ItemDetail, ItemSummary, Space, WriteResult } from './models';
+import type {
+  CreateResult, GitStatus, HistoryEntry, ItemDetail, ItemSummary, JournalNote, JournalText, NewItem, NewProject, ReleaseResult,
+  SearchResult, Space, WriteResult,
+} from './models';
 import { TOKEN_HEADER, readToken, sessionStore } from './token';
 
 /** Adds the session token to every API request. */
@@ -53,6 +56,40 @@ export class Api {
     return firstValueFrom(this.#http.get<ItemSummary[]>('/api/items', { params: { project, all: '1' } }));
   }
 
+  /** Open and done items of every project: no cancelled or archived ones. */
+  allItems(): Promise<ItemSummary[]> {
+    return firstValueFrom(this.#http.get<ItemSummary[]>('/api/items'));
+  }
+
+  search(text: string, all = false): Promise<SearchResult> {
+    return firstValueFrom(this.#http.get<SearchResult>('/api/search', { params: all ? { q: text, all: '1' } : { q: text } }));
+  }
+
+  journal(project: string): Promise<JournalNote[]> {
+    return firstValueFrom(this.#http.get<JournalNote[]>(`${projectUrl(project)}/journal`));
+  }
+
+  journalNote(project: string, date: string): Promise<JournalText> {
+    return firstValueFrom(this.#http.get<JournalText>(`${projectUrl(project)}/journal/${encodeURIComponent(date)}`));
+  }
+
+  addJournal(project: string, text: string): Promise<WriteResult & { file: string }> {
+    return this.#write(this.#http.post<WriteResult & { file: string }>(`${projectUrl(project)}/journal`, { text }));
+  }
+
+  createItem(item: NewItem): Promise<CreateResult> {
+    return this.#write(this.#http.post<CreateResult>('/api/items', item));
+  }
+
+  /** With `dryRun`, builds the notes and writes nothing. */
+  release(project: string, version: string, exclude: string[], dryRun: boolean): Promise<ReleaseResult> {
+    return this.#write(this.#http.post<ReleaseResult>(`${projectUrl(project)}/release`, { version, exclude, dryRun }));
+  }
+
+  promote(idea: Pick<ItemSummary, 'id' | 'etag'>, project: NewProject): Promise<CreateResult & { item: ItemDetail | null }> {
+    return this.#write(this.#http.post<CreateResult & { item: ItemDetail | null }>(`${itemUrl(idea.id)}/promote`, project, ifMatch(idea.etag)));
+  }
+
   item(id: string): Promise<ItemDetail> {
     return firstValueFrom(this.#http.get<ItemDetail>(`/api/items/${encodeURIComponent(id)}`));
   }
@@ -77,13 +114,17 @@ export class Api {
     return this.#write(this.#http.post<WriteResult>(`${itemUrl(item.id)}/move`, { project }, ifMatch(item.etag)));
   }
 
-  async #write(request: Observable<WriteResult>): Promise<WriteResult> {
+  async #write<T extends WriteResult>(request: Observable<T>): Promise<T> {
     try {
       return await firstValueFrom(request);
     } catch (error) {
       throw toWriteError(error);
     }
   }
+}
+
+function projectUrl(id: string): string {
+  return `/api/projects/${encodeURIComponent(id)}`;
 }
 
 function itemUrl(id: string): string {

@@ -114,6 +114,54 @@ export interface WriteResult {
   moved?: [string, string][];
 }
 
+export interface JournalNote {
+  date: string;
+  file: string;
+}
+
+export interface JournalText extends JournalNote {
+  text: string;
+}
+
+export interface SearchResult {
+  items: { id: string; status: string; title: string; file: string; archived: boolean }[];
+  journal: { file: string; line: number; text: string }[];
+}
+
+/** What creating an item, publishing a release or promoting an idea returns. */
+export interface CreateResult extends WriteResult {
+  id: string;
+  file?: string;
+}
+
+export interface ReleaseResult extends WriteResult {
+  id: string;
+  version: string;
+  dryRun: boolean;
+  released: string[];
+  notes: string;
+}
+
+export interface NewItem {
+  project: string;
+  kind: string;
+  title: string;
+  status?: string;
+  parent?: string;
+  priority?: string;
+  labels?: string[];
+  steps?: string[];
+  body?: string;
+}
+
+export interface NewProject {
+  id: string;
+  prefix: string;
+  kind: string;
+  release: string;
+  name?: string;
+}
+
 /** Open items of a project: what is still to do. */
 export function openCount(project: Pick<Project, 'counts'>): number {
   return OPEN_STATUSES.reduce((sum, status) => sum + (project.counts[status] ?? 0), 0);

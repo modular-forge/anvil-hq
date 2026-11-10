@@ -21,6 +21,8 @@ export type DialogRequest =
   | { kind: 'skip'; step: string }
   /** Moving an item, and its tasks, to another project. Answers with the project id. */
   | { kind: 'move'; item: DialogItem; tasks: number; projects: Project[] }
+  /** Turn an idea into a new project. Answers with the new project as JSON (NewProject). */
+  | { kind: 'promote'; item: DialogItem }
   /** The item changed on disk. Answers "reload" or "discard". */
   | { kind: 'conflict'; id: string; lines: string[] };
 

@@ -212,6 +212,26 @@ selected item (`?item=AB-1` in the URL, so a reload keeps it) in a panel beside 
 - **Read-only.** While the data space does not validate, cards cannot be dragged, the panel's
   controls are disabled and a notice says why.
 
+**The other views.**
+
+- **Home** (`pages/home/`): "Now", the doing and blocked items of every project; the inbox
+  waiting; every project by state with its counts, last release, Notion link (https only) and
+  repositories.
+- **Inbox** (`pages/inbox/`): items with no project yet, filtered into problems (label
+  `problem`, or a bug) and ideas. Each one moves to a project, becomes a project of its own
+  (`project promote`, from the "Idea → project" dialog) or is let go (cancelled with a reason).
+- **General** (`pages/general/`): decisions newest first, with their state derived from the
+  file (superseded, in force when done, discussing while open) and a jump to the one that
+  replaced another.
+- **Journal** (the project page with `?view=journal`): today's note, saved with Ctrl Enter, and
+  the latest 14 days, entries split on their `## HH:MM` headings, mentions linked.
+- **Publish release** (`/projects/<id>/release`): version (suggested from the last one), the
+  done items it includes, then the notes the server builds with a dry run; publishing is one
+  commit, and the notes can be copied.
+- **New item** (`shared/new-item/`, the N key or the top bar) and **quick add** at the foot of
+  Backlog and Todo; the **command palette** (`shared/palette/`, Ctrl K) searches items,
+  projects and journal notes through `/api/search` and runs the board's actions.
+
 Dialogs use the native modal `<dialog>`: the browser traps the focus, makes the page behind it
 inert and closes it with Escape. Item bodies are shown as paragraphs and lists built from data,
 never as HTML, with mentions of other items turned into links.

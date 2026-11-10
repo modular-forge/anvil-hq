@@ -203,6 +203,22 @@ export class ProjectBoard {
     });
   }
 
+  /** Creates a task straight into a column: the quick add at the foot of Backlog and Todo. */
+  quickAdd(status: string, title: string): Promise<boolean> {
+    if (this.readOnly() || !title.trim()) return Promise.resolve(false);
+    return this.#serial(async () => {
+      try {
+        const result = await this.#api.createItem({ project: this.projectId(), kind: 'task', title: title.trim(), status });
+        this.#notices.say(`Created ${result.id} in ${statusName(status)}`);
+        await this.load();
+        return true;
+      } catch (error) {
+        this.#notices.fail(error instanceof WriteError ? error.message : 'The item could not be created.');
+        return false;
+      }
+    });
+  }
+
   /** Moves the item, and its tasks, to another project chosen in a dialog. */
   moveToProject(detail: ItemDetail): Promise<void> {
     return this.#serial(() => this.#moveToProject(this.#freshDetail(detail)));

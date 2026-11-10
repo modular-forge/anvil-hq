@@ -5,6 +5,8 @@ import { filter, map } from 'rxjs';
 import type { GitStatus } from '../../core/models';
 import { SpaceStore } from '../../core/space-store';
 import { Icon } from '../../shared/icon/icon';
+import { Composer } from '../../shared/new-item/composer';
+import { PaletteService } from '../../shared/palette/palette';
 
 export interface Crumbs {
   parent: string | null;
@@ -42,6 +44,8 @@ export function backupLabel(git: GitStatus | null): string | null {
 export class Topbar {
   readonly #router = inject(Router);
   protected readonly store = inject(SpaceStore);
+  protected readonly palette = inject(PaletteService);
+  protected readonly composer = inject(Composer);
 
   readonly #url = toSignal(
     this.#router.events.pipe(
