@@ -1,0 +1,130 @@
+:host {
+  display: inline-flex;
+}
+
+svg {
+  overflow: visible;
+}
+
+.flame {
+  fill: var(--hot1);
+  transform-box: view-box;
+  transform-origin: 112px 62px;
+  animation: flicker 2.4s ease-in-out infinite;
+}
+
+.body {
+  fill: var(--steel);
+}
+
+.edge {
+  stroke: var(--hot2);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.head {
+  fill: var(--tx);
+}
+
+.handle {
+  fill: #8b5a2b;
+}
+
+.hammer {
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: 182px 30px;
+  transform: rotate(-24deg);
+  transition: opacity 0.15s;
+}
+
+.spark {
+  opacity: 0;
+  stroke: #ffc266;
+  stroke-width: 7;
+  stroke-linecap: round;
+  transform-box: view-box;
+}
+
+:host-context(.logo-link:hover),
+:host-context(.logo-link:focus-visible) {
+  .hammer {
+    opacity: 1;
+    animation: strike 1.1s cubic-bezier(0.3, 1.4, 0.5, 1) infinite;
+  }
+
+  .spark {
+    animation: fly 1.1s ease-out infinite;
+  }
+}
+
+@keyframes flicker {
+  0%,
+  100% {
+    transform: scaleY(1) skewX(0);
+  }
+
+  30% {
+    transform: scaleY(1.07) skewX(-3deg);
+  }
+
+  60% {
+    transform: scaleY(0.95) skewX(2deg);
+  }
+}
+
+@keyframes strike {
+  0% {
+    transform: rotate(-24deg);
+  }
+
+  45% {
+    transform: rotate(-30deg);
+  }
+
+  62% {
+    transform: rotate(4deg);
+  }
+
+  75%,
+  100% {
+    transform: rotate(0);
+  }
+}
+
+@keyframes fly {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+
+  64% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flame,
+  .spark {
+    animation: none;
+  }
+
+  :host-context(.logo-link:hover),
+  :host-context(.logo-link:focus-visible) {
+    .hammer {
+      animation: none;
+      transform: none;
+    }
+
+    .spark {
+      animation: none;
+    }
+  }
+}

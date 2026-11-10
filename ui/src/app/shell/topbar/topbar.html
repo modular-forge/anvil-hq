@@ -1,0 +1,25 @@
+<header class="topbar">
+  <p class="crumbs">
+    @if (crumbs().parent; as parent) {
+      {{ parent }} <span aria-hidden="true">/</span>
+    }
+    <span class="here">{{ crumbs().here }}</span>
+  </p>
+
+  <!-- The command palette and the new item dialog arrive with the board's views. -->
+  <button type="button" class="search" disabled title="Coming soon">
+    <anv-icon name="search" [size]="15" />
+    <span class="label">Search or run a command</span>
+    <span class="key mono">Ctrl K</span>
+  </button>
+
+  @if (backup(); as label) {
+    <span class="backup" [class.stale]="store.git()?.stale" role="status">
+      <anv-icon name="push" [size]="13" [strokeWidth]="2.2" />{{ label }}
+    </span>
+  }
+
+  <button type="button" class="new" disabled title="Coming soon">
+    <anv-icon name="plus" [size]="14" [strokeWidth]="2.6" />New item<span class="key mono">N</span>
+  </button>
+</header>

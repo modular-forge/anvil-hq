@@ -80,7 +80,8 @@ export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
     "font-src 'self'",
     "connect-src 'self'",
     "object-src 'none'",
-    "base-uri 'none'",
+    // Angular's <base href="/">: without it, app routes like /projects/x would load /projects/main.js.
+    "base-uri 'self'",
     "form-action 'none'",
     "frame-ancestors 'none'",
   ].join('; '),
