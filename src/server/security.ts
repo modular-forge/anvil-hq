@@ -62,7 +62,7 @@ export function checkApi(method: string, headers: IncomingHttpHeaders, token: st
     return { status: 401, message: 'missing or wrong token: open the board at the URL that `anvil serve` printed' };
   }
   // A body that is not JSON could come from a plain HTML form; only JSON is accepted.
-  if (method !== 'GET' && method !== 'HEAD') {
+  if (method === 'POST' || method === 'PATCH' || method === 'PUT') {
     const type = headers['content-type']?.split(';')[0]?.trim().toLowerCase();
     if (type !== 'application/json') return { status: 415, message: 'request bodies must be application/json' };
   }

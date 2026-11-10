@@ -1,28 +1,14 @@
 import assert from 'node:assert/strict';
-import { request, type IncomingHttpHeaders } from 'node:http';
-import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { request } from 'node:http';
+import { utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, type TestContext } from 'node:test';
 import { isDataPath } from '../src/server/events.ts';
 import { tokenMatches } from '../src/server/security.ts';
 import { startServer, type ServerOptions } from '../src/server/server.ts';
+import { startTestServer } from './server-support.ts';
 import { item, itemText, fields, makeSpace, type SpaceFiles } from './support.ts';
-
-interface Reply {
-  status: number;
-  headers: IncomingHttpHeaders;
-  text: string;
-  json: () => any;
-}
-
-interface Call {
-  method?: string;
-  headers?: Record<string, string>;
-  body?: string;
-  /** false: send no token header. */
-  token?: false | string;
-}
 
 const FILES: SpaceFiles = {
   ...item('alpha', 'AL-1', { kind: 'feature', status: 'doing', aliases: ['BE-7'] }, '- [x] One\n- [ ] Two\n- [x] ~~Three~~ (skipped: not needed)\n'),
@@ -34,38 +20,7 @@ const FILES: SpaceFiles = {
   'projects/alpha/journal/2026-11-09.md': '## 10:00\n\nTalked about AL-1 and the needle.\n',
 };
 
-/** Starts a server on a free port over a made-up data space; stops it after the test. */
-async function serve(t: TestContext, files: SpaceFiles = FILES, options: Partial<ServerOptions> = {}) {
-  const dir = makeSpace(t, files);
-  const errors: unknown[] = [];
-  const server = await startServer({ dir, port: 0, token: 'test-token', staticDir: board(t), logError: (e) => errors.push(e), ...options });
-  t.after(() => server.close());
-  const call = (path: string, { method = 'GET', headers = {}, body, token = 'test-token' }: Call = {}) => new Promise<Reply>((resolve, reject) => {
-    const all: Record<string, string> = { ...(token === false ? {} : { 'x-anvil-token': token }), ...headers };
-    const req = request({ host: '127.0.0.1', port: server.port, path, method, headers: all }, (res) => {
-      let text = '';
-      res.setEncoding('utf8');
-      res.on('data', (chunk) => { text += chunk; });
-      res.on('end', () => resolve({ status: res.statusCode ?? 0, headers: res.headers, text, json: () => JSON.parse(text) }));
-    });
-    req.on('error', reject);
-    req.end(body);
-  });
-  return { dir, server, call, errors };
-}
-
-/** A built board: index.html and one script, next to a file that must never be served. */
-function board(t: TestContext): string {
-  const base = mkdtempSync(join(tmpdir(), 'anvil-board-'));
-  t.after(() => rmSync(base, { recursive: true, force: true }));
-  const root = join(base, 'ui-dist');
-  mkdirSync(join(root, 'assets'), { recursive: true });
-  writeFileSync(join(root, 'index.html'), '<!doctype html><title>board</title>');
-  writeFileSync(join(root, 'assets', 'main.js'), 'console.log(1);');
-  writeFileSync(join(root, '.env'), 'SECRET=1');
-  writeFileSync(join(base, 'secret.txt'), 'outside');
-  return root;
-}
+const serve = (t: TestContext, files: SpaceFiles = FILES, options: Partial<ServerOptions> = {}) => startTestServer(t, files, options);
 
 describe('server security', () => {
   it('rejects API requests without the right token', async (t) => {
@@ -97,10 +52,14 @@ describe('server security', () => {
     assert.equal(own.status, 200);
   });
 
-  it('only accepts GET for now, and JSON bodies once the token is right', async (t) => {
+  it('accepts only JSON bodies, once the token is right, and only the methods each path has', async (t) => {
     const { call } = await serve(t);
-    assert.equal((await call('/api/space', { method: 'POST', body: 'a=1', headers: { 'content-type': 'application/x-www-form-urlencoded' } })).status, 415);
-    assert.equal((await call('/api/space', { method: 'POST', body: '{}', headers: { 'content-type': 'application/json' } })).status, 405);
+    assert.equal((await call('/api/items', { method: 'POST', body: 'a=1', headers: { 'content-type': 'application/x-www-form-urlencoded' } })).status, 415);
+    assert.equal((await call('/api/items', { method: 'POST', body: '{}', headers: { 'content-type': 'text/plain' } })).status, 415);
+    assert.equal((await call('/api/items', { method: 'POST', body: '{}', token: false, headers: { 'content-type': 'application/json' } })).status, 401);
+    assert.equal((await call('/api/items', { method: 'PUT', json: {} })).status, 405);
+    assert.equal((await call('/api/items', { method: 'DELETE' })).status, 405);
+    assert.equal((await call('/api/space', { method: 'POST', json: {} })).status, 404);
     assert.equal((await call('/', { method: 'DELETE' })).status, 405);
   });
 

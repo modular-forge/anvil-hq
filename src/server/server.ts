@@ -9,10 +9,13 @@ import { AnvilError } from '../errors.ts';
 import { errorCode } from '../fsutil.ts';
 import { readRoute, type ApiResponse } from './api.ts';
 import { ChangeFeed } from './events.ts';
+import { writeRoute, type Body } from './writes.ts';
 import { SECURITY_HEADERS, checkApi, checkRequest, newToken, type Refusal } from './security.ts';
 import { staticFile } from './static.ts';
 
 export const DEFAULT_PORT = 4747;
+/** Largest request body accepted; an item with a long body fits many times over. */
+export const MAX_BODY_BYTES = 256 * 1024;
 const HOST = '127.0.0.1';
 
 export interface ServerOptions {
@@ -27,6 +30,8 @@ export interface ServerOptions {
   watch?: boolean;
   /** Where unexpected errors are reported; requests only ever get a generic message. */
   logError?: (error: unknown) => void;
+  /** The clock for dates written to items and the journal (tests). */
+  now?: () => Date;
 }
 
 export interface RunningServer {
@@ -44,14 +49,13 @@ export async function startServer({
   staticDir = join(TOOL_ROOT, 'ui-dist'),
   watch = true,
   logError = (error) => console.error(error),
+  now = () => new Date(),
 }: ServerOptions): Promise<RunningServer> {
   const feed = new ChangeFeed(dir, { watch });
   let actualPort = port;
 
   const server = createServer((req, res) => {
-    try {
-      handle(req, res);
-    } catch (error) {
+    handle(req, res).catch((error: unknown) => {
       if (res.headersSent) {
         res.end();
       } else if (error instanceof AnvilError) {
@@ -61,10 +65,10 @@ export async function startServer({
         logError(error);
         send(res, req, { status: 500, body: { error: 'internal error; see the terminal running anvil serve' } });
       }
-    }
+    });
   });
 
-  function handle(req: IncomingMessage, res: ServerResponse): void {
+  async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const method = req.method ?? 'GET';
     const refusal = checkRequest(req.headers, actualPort);
     if (refusal) return refuse(res, req, refusal);
@@ -80,10 +84,17 @@ export async function startServer({
     if (pathname === '/api' || pathname.startsWith('/api/')) {
       const apiRefusal = checkApi(method, req.headers, token);
       if (apiRefusal) return refuse(res, req, apiRefusal);
-      if (method !== 'GET' && method !== 'HEAD') return refuse(res, req, { status: 405, message: `${method} is not supported here` });
-      if (url.pathname === '/api/events') return feed.subscribe(res);
       // Route on the raw path: ids and dates are decoded segment by segment.
-      const response = readRoute({ dir, watching: feed.watching }, url.pathname, url.searchParams);
+      if (method === 'GET' || method === 'HEAD') {
+        if (url.pathname === '/api/events') return feed.subscribe(res);
+        const response = readRoute({ dir, watching: feed.watching }, url.pathname, url.searchParams, now());
+        return send(res, req, response ?? { status: 404, body: { error: 'no such API route' } });
+      }
+      if (method !== 'POST' && method !== 'PATCH') return refuse(res, req, { status: 405, message: `${method} is not supported here` });
+      const body = await readBody(req);
+      if ('status' in body) return refuse(res, req, body);
+      const ifMatch = req.headers['if-match'];
+      const response = writeRoute({ dir, method, pathname: url.pathname, body: body.json, ifMatch, now: now() });
       return send(res, req, response ?? { status: 404, body: { error: 'no such API route' } });
     }
 
@@ -116,8 +127,34 @@ export async function startServer({
   };
 }
 
+/** Reads a JSON object body, refusing anything too large or malformed. */
+async function readBody(req: IncomingMessage): Promise<{ json: Body } | Refusal> {
+  const declared = Number(req.headers['content-length'] ?? 0);
+  if (declared > MAX_BODY_BYTES) {
+    req.resume();
+    return { status: 413, message: `request bodies are limited to ${MAX_BODY_BYTES} bytes` };
+  }
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += (chunk as Buffer).length;
+    if (size > MAX_BODY_BYTES) return { status: 413, message: `request bodies are limited to ${MAX_BODY_BYTES} bytes` };
+    chunks.push(chunk as Buffer);
+  }
+  let json: unknown;
+  try {
+    json = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch {
+    return { status: 400, message: 'the request body is not valid JSON' };
+  }
+  if (typeof json !== 'object' || json === null || Array.isArray(json)) return { status: 400, message: 'the request body must be a JSON object' };
+  return { json: json as Body };
+}
+
 /** Sends a JSON response; honours If-None-Match when the response has an ETag. */
 function send(res: ServerResponse, req: IncomingMessage, { status, body, etag }: ApiResponse): void {
+  // A body nobody read would be taken as the next request on a kept-alive connection.
+  if (!req.readableEnded) req.resume();
   const headers: Record<string, string> = { ...SECURITY_HEADERS, 'Cache-Control': 'no-store' };
   if (etag) {
     headers.ETag = etag;

@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mtimeOf } from '../fsutil.ts';
+import { fileHistory, isRepository, oldestUnpushedDate, uncommittedChanges, unpushedCount } from '../git.ts';
 import { search } from '../maintenance.ts';
 import { RESERVED_AREAS } from '../rules.ts';
 import { listJournal, openSpace } from '../store.ts';
@@ -26,6 +27,10 @@ export interface ApiState {
 }
 
 const MAX_QUERY = 200;
+/** The board warns that the backup is behind from this many unpushed commits… */
+export const STALE_COMMITS = 10;
+/** …or when the oldest unpushed commit is this old. */
+export const STALE_MS = 2 * 24 * 60 * 60 * 1000;
 const MAX_PROBLEMS = 100;
 const RESERVED_IDS: ReadonlySet<string> = new Set(RESERVED_AREAS.map((area) => area.id));
 
@@ -35,12 +40,15 @@ export function etagOf(mtimeMs: number): string {
 }
 
 /** Routes a GET request under /api. Returns null when no route matches. */
-export function readRoute(state: ApiState, pathname: string, query: URLSearchParams): ApiResponse | null {
+export function readRoute(state: ApiState, pathname: string, query: URLSearchParams, now: Date): ApiResponse | null {
   if (pathname === '/api/space') return space(state);
+  if (pathname === '/api/git') return gitStatus(state.dir, now);
   if (pathname === '/api/items') return items(openSpace(state.dir), query);
   if (pathname === '/api/search') return searchRoute(openSpace(state.dir), query);
   let match = /^\/api\/items\/([^/]+)$/.exec(pathname);
   if (match) return itemDetail(openSpace(state.dir), decode(match[1]));
+  match = /^\/api\/items\/([^/]+)\/history$/.exec(pathname);
+  if (match) return history(openSpace(state.dir), decode(match[1]));
   match = /^\/api\/projects\/([^/]+)\/journal$/.exec(pathname);
   if (match) return journalList(openSpace(state.dir), decode(match[1]));
   match = /^\/api\/projects\/([^/]+)\/journal\/([^/]+)$/.exec(pathname);
@@ -106,11 +114,43 @@ function items(ctx: Context, query: URLSearchParams): ApiResponse {
 function itemDetail(ctx: Context, id: string): ApiResponse {
   const entry = ctx.byId.get(id);
   if (!entry) return notFound(`item ${id} not found`);
+  return { status: 200, etag: etagOf(entry.mtimeMs), body: detail(ctx, entry) };
+}
+
+/** Everything the detail panel shows of an item. */
+export function detail(ctx: Context, entry: ItemEntry) {
   const children = childrenOf(entry, ctx.space.items, ctx.byId).map(summary);
+  return { ...summary(entry), body: entry.item.body, steps: entry.item.steps, children };
+}
+
+/** The commits that changed an item's file, through moves and archiving. */
+function history(ctx: Context, id: string): ApiResponse {
+  const entry = ctx.byId.get(id);
+  if (!entry) return notFound(`item ${id} not found`);
+  return { status: 200, body: fileHistory(ctx.dir, entry.file) };
+}
+
+/**
+ * Whether the data space is backed up: unpushed commits, uncommitted files, and `stale` when
+ * the backup is far enough behind for the board to warn.
+ */
+function gitStatus(dir: string, now: Date): ApiResponse {
+  if (!isRepository(dir)) {
+    return { status: 200, body: { repository: false, upstream: false, unpushed: null, oldestUnpushed: null, uncommitted: [], stale: true } };
+  }
+  const unpushed = unpushedCount(dir);
+  const oldestUnpushed = unpushed ? oldestUnpushedDate(dir) : null;
+  const age = oldestUnpushed ? now.getTime() - Date.parse(oldestUnpushed) : 0;
   return {
     status: 200,
-    etag: etagOf(entry.mtimeMs),
-    body: { ...summary(entry), body: entry.item.body, steps: entry.item.steps, children },
+    body: {
+      repository: true,
+      upstream: unpushed !== null,
+      unpushed,
+      oldestUnpushed,
+      uncommitted: uncommittedChanges(dir).map((line) => line.slice(3)),
+      stale: unpushed === null || unpushed >= STALE_COMMITS || age >= STALE_MS,
+    },
   };
 }
 
@@ -137,7 +177,7 @@ function searchRoute(ctx: Context, query: URLSearchParams): ApiResponse {
 }
 
 /** What a card needs: header fields and step progress, without the body. */
-function summary(entry: ItemEntry) {
+export function summary(entry: ItemEntry) {
   return {
     id: entry.item.fields.id,
     project: entry.project,
@@ -157,7 +197,7 @@ function progress(steps: Step[]): { total: number; done: number; skipped: number
   };
 }
 
-function decode(segment: string | undefined): string {
+export function decode(segment: string | undefined): string {
   try {
     return decodeURIComponent(segment ?? '');
   } catch {
@@ -165,10 +205,10 @@ function decode(segment: string | undefined): string {
   }
 }
 
-function notFound(message: string): ApiResponse {
+export function notFound(message: string): ApiResponse {
   return { status: 404, body: { error: message } };
 }
 
-function badRequest(message: string): ApiResponse {
+export function badRequest(message: string): ApiResponse {
   return { status: 400, body: { error: message } };
 }

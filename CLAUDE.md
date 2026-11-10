@@ -105,7 +105,7 @@ src/init.ts         # init: new data space and user configuration
 src/briefing.ts     # briefing for the Claude Code session hook (never fails)
 src/doctor.ts       # doctor: health and privacy checks
 src/migrate.ts      # format migrations (none yet)
-src/server/         # anvil serve: HTTP server, security checks, read API, change feed, static files
+src/server/         # anvil serve: HTTP server, security checks, read and write API, change feed, static files
 src/leak-guard.ts   # detects personal data outside examples/ (hook and CI)
 scripts/check-leaks.ts  # leak check entry point: --staged (hook) or --all (CI)
 .githooks/pre-commit    # leak check + gitleaks; shell because git runs hooks by name
