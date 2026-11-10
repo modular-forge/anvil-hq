@@ -1,0 +1,51 @@
+@let it = item();
+<button
+  type="button"
+  class="card"
+  [class.hot]="it.fields.status === 'doing'"
+  [class.blocked]="it.fields.status === 'blocked'"
+  [class.cancelled]="it.fields.status === 'cancelled'"
+  [attr.data-id]="it.id"
+  [attr.aria-pressed]="selected()"
+  [attr.aria-keyshortcuts]="movable() ? 'Shift+ArrowLeft Shift+ArrowRight' : null"
+  [draggable]="movable()"
+  (click)="opened.emit()"
+  (keydown)="keydown($event)"
+  (dragstart)="dragstart($event)"
+  (dragend)="dragEnded.emit()"
+>
+  <span class="top">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path [attr.d]="kindIcon()" />
+    </svg>
+    <span class="sr-only">{{ it.fields.kind }}</span>
+    <span class="mono">{{ it.id }}</span>
+    @if (it.fields.priority === 'high') {
+      <span class="prio"><span aria-hidden="true">▲</span> high</span>
+    }
+  </span>
+  <span class="title">{{ it.fields.title }}</span>
+  @if (it.fields.parent) {
+    <span class="parent"><span aria-hidden="true">↳</span> <span class="mono">{{ it.fields.parent }}</span> {{ parentTitle() }}</span>
+  }
+  @if (it.progress.total) {
+    <span class="progress">
+      <span class="segs" aria-hidden="true">
+        @for (seg of segments(); track $index) {
+          <span [class]="seg"></span>
+        }
+      </span>
+      <span class="mono">{{ resolved() }}/{{ it.progress.total }}<span class="sr-only"> steps resolved</span></span>
+    </span>
+  }
+  @if (it.fields.labels?.length) {
+    <span class="labels">
+      @for (label of it.fields.labels; track label) {
+        <span>{{ label }}</span>
+      }
+    </span>
+  }
+  @if (extra(); as extra) {
+    <span class="extra" [style.color]="extra.tone ? 'var(--st-' + extra.tone + ')' : null">{{ extra.text }}</span>
+  }
+</button>

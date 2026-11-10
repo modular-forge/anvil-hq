@@ -1,0 +1,60 @@
+:host {
+  display: block;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 16px 0 24px;
+}
+
+.columns {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.column {
+  display: flex;
+  flex: 0 0 236px;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 120px;
+  padding: 4px;
+  border: 1px dashed transparent;
+  border-radius: 12px;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.droppable {
+  border-color: var(--line2);
+}
+
+.target {
+  border-color: var(--hot2);
+  background: color-mix(in srgb, var(--hot2) 6%, transparent);
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 4px 4px 2px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.count {
+  color: var(--tx3);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

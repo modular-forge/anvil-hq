@@ -51,10 +51,10 @@ test('moves between pages and keeps the theme choice', async ({ page }) => {
 test('shows changes made outside the board without a reload', async ({ page }) => {
   await page.goto(boardUrl());
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: /Home lab/ }).click();
-  const counts = page.getByRole('listitem').filter({ hasText: 'doing' });
-  await expect(counts).toHaveCount(0);
+  const doing = page.getByRole('region', { name: 'Doing' }).locator('[data-id="HL-1"]');
+  await expect(page.getByRole('region', { name: 'Todo' }).locator('[data-id="HL-1"]')).toBeVisible();
 
   anvil('item', 'status', 'HL-1', 'doing');
-  await expect(counts).toContainText('1');
+  await expect(doing).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'No remote' })).toBeVisible();
 });

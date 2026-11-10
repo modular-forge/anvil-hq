@@ -1,0 +1,50 @@
+@if (project(); as project) {
+  <header class="head">
+    <div class="names">
+      <div class="title-row">
+        <h1 class="display">{{ project.name }}</h1>
+        <span class="mono prefix">{{ project.prefix }}</span>
+        @if (stateName()) {
+          <span class="chip state" [class.active]="project.state === 'active'">{{ stateName() }}</span>
+        }
+        @if (project.kind) {
+          <span class="chip">{{ project.kind }}</span>
+        }
+        @if (project.release === 'versioned') {
+          <span class="chip released">versioned</span>
+        }
+      </div>
+      @if (project.summary) {
+        <p class="summary">{{ project.summary }}</p>
+      }
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button type="button" class="toggle" [attr.aria-pressed]="board.showCancelled()" (click)="board.showCancelled.set(!board.showCancelled())">
+      Show cancelled · {{ board.cancelledCount() }}
+    </button>
+  </div>
+
+  @if (board.readOnly()) {
+    <p class="readonly" role="status">
+      The data space has problems, so the board is read-only until they are fixed. Run <span class="mono">anvil validate</span> to see them.
+    </p>
+  }
+
+  <div class="layout">
+    @if (board.loaded()) {
+      <anv-board class="board" />
+    } @else {
+      <p class="loading">Loading the board…</p>
+    }
+    @if (board.selectedId()) {
+      <aside class="panel" aria-labelledby="detail-title">
+        <anv-detail-panel (closed)="close()" />
+      </aside>
+    }
+  </div>
+} @else if (store.state() === 'ready') {
+  <h1 class="display">Unknown project</h1>
+  <p class="summary">There is no project "{{ id() }}" in this data space.</p>
+}

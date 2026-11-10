@@ -1,0 +1,132 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.head {
+  padding-bottom: 14px;
+}
+
+.names {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.prefix {
+  color: var(--tx3);
+  font-size: 13px;
+}
+
+.chip {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--s3);
+  color: var(--tx2);
+  font-size: 12px;
+}
+
+.chip.active {
+  background: color-mix(in srgb, var(--st-doing) 14%, transparent);
+  color: var(--st-doing);
+  font-weight: 600;
+}
+
+.chip.released {
+  border: 1px solid var(--st-released);
+  background: transparent;
+  color: var(--st-released);
+}
+
+.summary {
+  margin: 0;
+  color: var(--tx2);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.toggle {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tx2);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.toggle[aria-pressed='true'] {
+  background: var(--s3);
+  color: var(--tx);
+}
+
+.readonly {
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--st-blocked) 50%, var(--line2));
+  border-radius: var(--radius-m);
+  color: var(--tx2);
+}
+
+.layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.board {
+  flex: 1;
+}
+
+.loading {
+  color: var(--tx3);
+}
+
+// Narrow screens: the panel covers the board from the right.
+.panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  width: min(420px, 100vw);
+  overflow-y: auto;
+  border-left: 1px solid var(--line);
+  background: var(--s1);
+  box-shadow: -16px 0 40px rgb(0 0 0 / 30%);
+}
+
+@media (min-width: 1200px) {
+  .panel {
+    position: sticky;
+    top: 0;
+    flex: 0 0 400px;
+    align-self: flex-start;
+    max-height: 100vh;
+    margin: 0 -24px 0 16px;
+    box-shadow: none;
+  }
+}
