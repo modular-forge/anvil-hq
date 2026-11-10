@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { DataDirError, TOOL_ROOT, assertOutsideTool, resolveDataDir, userConfigPath } from '../src/data-dir.ts';
-import { makeSpace } from './support.ts';
+import { makeSpace, shortPath } from './support.ts';
 
 const NO_CONFIG = join(TOOL_ROOT, 'test', 'no-such-config.json');
 
@@ -53,6 +53,16 @@ describe('resolveDataDir', () => {
     mkdirSync(examples);
     writeFileSync(join(examples, 'projects.json'), JSON.stringify({ schemaVersion: 1, projects: [] }));
     assert.equal(resolveDataDir({ flag: examples, env: {}, configFile: NO_CONFIG, toolRoot }).dir, examples);
+  });
+
+  it('refuses it even when one path is a Windows 8.3 short path and the other is not', (t) => {
+    const toolRoot = makeSpace(t, { 'package.json': {} });
+    const inside = join(toolRoot, 'my-data');
+    mkdirSync(inside);
+    const short = shortPath(toolRoot);
+    if (!short) return t.skip('no 8.3 short names here');
+    assert.throws(() => assertOutsideTool(inside, short), /public/);
+    assert.throws(() => assertOutsideTool(join(short, 'my-data'), toolRoot), /public/);
   });
 });
 

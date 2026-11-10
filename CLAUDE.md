@@ -33,7 +33,9 @@ separate private repository.
 ## Commands
 
 ```bash
-npm run check                                 # typecheck + tests + example data: run before finishing
+npm run check                                 # typecheck + tests + example data + leak check: run before finishing
+npm run leaks                                 # personal-data check on every tracked file
+npm run hooks                                 # activate the pre-commit hook in this clone (once)
 npm run typecheck                             # tsc --noEmit (strict)
 npm test                                      # all unit tests
 node --test test/frontmatter.test.ts          # one test file
@@ -59,6 +61,11 @@ summary. Never skip, delete or weaken a test, or loosen `tsconfig.json`, to go g
 - No runtime dependencies. For dev tools and CI: never a version published less than 7 days
   ago, never `@latest`, exact versions, GitHub Actions pinned by full commit SHA, never
   `npm audit fix --force`.
+- CI (`.github/workflows/ci.yml`): `permissions: {}` at the top and `contents: read` per job,
+  `persist-credentials: false` on checkout, downloaded binaries verified by SHA-256. Changing it
+  needs the user's approval.
+- Never bypass the pre-commit hook (`--no-verify`). If it rejects a file, the file does not
+  belong in this repository.
 
 ## Design rules
 
@@ -97,6 +104,10 @@ src/init.ts         # init: new data space and user configuration
 src/briefing.ts     # briefing for the Claude Code session hook (never fails)
 src/doctor.ts       # doctor: health and privacy checks
 src/migrate.ts      # format migrations (none yet)
+src/leak-guard.ts   # detects personal data outside examples/ (hook and CI)
+scripts/check-leaks.ts  # leak check entry point: --staged (hook) or --all (CI)
+.githooks/pre-commit    # leak check + gitleaks; shell because git runs hooks by name
+.github/workflows/  # CI: npm run check on Linux and Windows, Node 24 and 26; gitleaks
 templates/          # built-in starting items per project kind (generic, public)
 schema/             # JSON Schemas (public contract)
 docs/format.md      # format reference (public contract)

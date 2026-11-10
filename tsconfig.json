@@ -3,7 +3,9 @@
     "target": "esnext",
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "noEmit": true,
     "strict": true,
     "noUncheckedIndexedAccess": true,
@@ -17,5 +19,10 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": ["bin/**/*.ts", "src/**/*.ts", "test/**/*.ts"]
+  "include": [
+    "bin/**/*.ts",
+    "src/**/*.ts",
+    "scripts/**/*.ts",
+    "test/**/*.ts"
+  ]
 }

@@ -81,6 +81,18 @@ export function setConfig(dir: string, key: string, value: string): void {
   git(dir, ['config', key, value]);
 }
 
+/**
+ * Whether `dir` is the top folder of a git repository, not a folder inside one. Asks git instead
+ * of comparing paths, which differ in form on Windows (8.3 short names, slashes, case).
+ */
+export function isRepositoryRoot(dir: string): boolean {
+  try {
+    return git(dir, ['rev-parse', '--show-prefix']).trim() === '';
+  } catch {
+    return false;
+  }
+}
+
 export function isRepository(dir: string): boolean {
   try {
     return git(dir, ['rev-parse', '--is-inside-work-tree']).trim() === 'true';

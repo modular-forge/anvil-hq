@@ -15,7 +15,9 @@
     "typecheck": "tsc",
     "test": "node --test \"test/**/*.test.ts\"",
     "validate:examples": "node bin/anvil.ts validate --data examples",
-    "check": "npm run typecheck && npm test && npm run validate:examples"
+    "leaks": "node scripts/check-leaks.ts --all",
+    "hooks": "git config core.hooksPath .githooks",
+    "check": "npm run typecheck && npm test && npm run validate:examples && npm run leaks"
   },
   "repository": {
     "type": "git",

@@ -88,5 +88,5 @@ function nearestExisting(dir: string): string {
     rest.unshift(basename(existing));
     existing = dirname(existing);
   }
-  return join(realpathSync(existing), ...rest);
+  return join(realpathSync.native(existing), ...rest);
 }

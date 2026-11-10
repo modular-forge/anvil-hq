@@ -99,8 +99,10 @@ function searchUpwards(start: string): DataLocation | null {
  * repository. The made-up data space in examples/ is the only exception.
  */
 export function assertOutsideTool(dir: string, toolRoot: string = TOOL_ROOT): void {
-  const real = existsSync(dir) ? realpathSync(dir) : resolve(dir);
-  const root = realpathSync(toolRoot);
+  // The native realpath also expands Windows 8.3 short names (C:\Users\RUNNER~1), so both sides
+  // are compared in the same long form.
+  const real = existsSync(dir) ? realpathSync.native(dir) : resolve(dir);
+  const root = realpathSync.native(toolRoot);
   if (!isInside(real, root)) return;
   if (isInside(real, join(root, 'examples'))) return;
   throw new DataDirError(`refusing to use ${dir}: it is inside the anvil-hq repository, which is public. Keep your data in a separate private repository.`);
