@@ -177,7 +177,9 @@ The board is an Angular 22.2 app in `ui/` (standalone components, signals, zonel
 detection), with its own `package.json`, lockfile and `.npmrc`. It is the one build-time
 exception to "no build step": `npm run build` writes it to `ui-dist/`, which is committed, so a
 clone can run `anvil serve` without installing anything. The production build has no hashed file
-names and is deterministic; CI rebuilds it and fails when the committed copy differs.
+names and is deterministic; CI rebuilds it and fails when the committed copy differs. After
+`ng build`, `ui/scripts/normalize-eol.ts` rewrites CRLF line endings as LF (some third-party
+licence texts ship with CRLF), so the output has the same bytes on every system.
 
 - `core/`: the API client (`api.ts`, which adds the token header), the change feed
   (`change-feed.ts`, Server-Sent Events read with `fetch`), the store (`space-store.ts`: the

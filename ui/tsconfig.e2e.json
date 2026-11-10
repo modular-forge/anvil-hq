@@ -4,5 +4,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["e2e/**/*.ts", "playwright.config.ts", "eslint.config.ts"]
+  "include": ["e2e/**/*.ts", "scripts/**/*.ts", "playwright.config.ts", "eslint.config.ts"]
 }
