@@ -125,3 +125,37 @@ function hasStagedChanges(dir: string, paths: string[]): boolean {
     throw error;
   }
 }
+
+export interface HistoryEntry {
+  hash: string;
+  /** Commit date, ISO 8601. */
+  date: string;
+  subject: string;
+}
+
+/**
+ * Commits that changed `file` (relative to `dir`), newest first, following renames: a moved or
+ * archived item keeps its history. Empty outside a repository.
+ */
+export function fileHistory(dir: string, file: string, limit = 50): HistoryEntry[] {
+  let out: string;
+  try {
+    out = git(dir, ['log', '--follow', `--max-count=${limit}`, '--format=%h%x1f%cI%x1f%s', '--', file]);
+  } catch {
+    return [];
+  }
+  return out.split('\n').filter(Boolean).map((line) => {
+    const [hash = '', date = '', subject = ''] = line.split('\x1f');
+    return { hash, date, subject };
+  });
+}
+
+/** Commit date (ISO 8601) of the oldest commit the upstream does not have, or null. */
+export function oldestUnpushedDate(dir: string): string | null {
+  try {
+    const dates = git(dir, ['log', '--format=%cI', '@{upstream}..HEAD']).split('\n').filter(Boolean);
+    return dates.at(-1) ?? null;
+  } catch {
+    return null;
+  }
+}

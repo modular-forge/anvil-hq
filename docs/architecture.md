@@ -37,6 +37,7 @@ Two consequences shape the code:
 | Model | `types.ts`, `rules.ts`, `validate.ts`, `json-schema.ts` | The data model, status and closing rules, validation |
 | Files | `space.ts`, `item.ts`, `frontmatter.ts`, `registry.ts` | Reading a data space; parsing and writing items and `projects.json` |
 | System | `data-dir.ts`, `fsutil.ts`, `git.ts`, `errors.ts` | Finding the data space, safe writes, git, error types |
+| Server | `server/server.ts`, `server/security.ts`, `server/api.ts`, `server/events.ts`, `server/static.ts` | `anvil serve`: the board's HTTP server, API and change feed |
 
 Commands never print and never call `process.exit`: they return a result, and `cli.ts` decides
 how to show it (`--json` or text). That keeps every command testable in-process.
@@ -61,7 +62,7 @@ Pushing is left to the user.
 
 ## Several writers
 
-The CLI, the future web board and several Claude Code sessions may write at the same time.
+The CLI, the web board and several Claude Code sessions may write at the same time.
 
 - **New ids** come from the files themselves (the highest number in use, archive and aliases
   included, plus one). Files are created in exclusive mode, so two writers can never both
@@ -90,6 +91,82 @@ The tool is public and every user's data is private, so the repository guards it
 5. `anvil doctor` warns when the hook is not active in the clone anvil runs from, and checks
    with `gh` that the data repository is private.
 
+## The local server
+
+`anvil serve` starts a plain `node:http` server on `127.0.0.1:4747` (no dependencies). It serves
+the built board from `ui-dist/`, a JSON API under `/api` and a Server-Sent Events stream of
+changes. The API reads the data space afresh on every request with the same functions as the
+CLI, so the board always shows what is on disk.
+
+**Who may talk to it.** Listening on 127.0.0.1 keeps other machines out, but any page open in the
+browser can still send requests to localhost. Every request is checked (`server/security.ts`):
+
+- **Host** must be `127.0.0.1:<port>` or `localhost:<port>`. This defeats DNS rebinding, where a
+  foreign domain resolves to 127.0.0.1.
+- **Origin** and **Sec-Fetch-Site**, when the browser sends them, must say the request comes from
+  the board itself; `same-site` is refused too, because another app on another localhost port
+  is a different origin. No CORS headers are ever sent.
+- **API requests carry a session token** in the `X-Anvil-Token` header. A new random token
+  (256 bits) is made on each start and printed in the URL fragment (`#token=…`). Browsers never
+  send the fragment to a server or put it in a Referer, and the board moves it to
+  `sessionStorage`. Tokens are compared in constant time.
+- **Request bodies must be JSON** (`415` otherwise), so a plain HTML form cannot post to it.
+- Every response carries a strict Content-Security-Policy (`'self'` only, no framing),
+  `nosniff` and `no-referrer`. API responses are `no-store`.
+
+Static files are limited to known types inside `ui-dist/`, never dotfiles; paths without an
+extension are app routes and get `index.html`. Until the board is built, a placeholder page says
+so.
+
+**Read API.** `GET /api/space` (projects with counts per status, validation problems, `readOnly`
+when the space does not validate, and a `stamp` that changes with any file), `/api/items`
+(`?project=`, `?all=1` adds cancelled and archived items), `/api/items/<id>` (an id or alias;
+body, steps and child tasks), `/api/items/<id>/history` (its commits through moves and
+archiving, from `git log --follow`), `/api/projects/<id>/journal[/<date>]`, `/api/search?q=`
+and `/api/git` (unpushed commits, uncommitted files, and `stale` when there is no upstream, 10
+or more unpushed commits, or the oldest one is 2 days old). Item responses carry an `ETag` made
+from the file's modification time; `If-None-Match` gets a `304`. Errors are
+`{ "error": "…" }`; a data space that cannot be read answers `503`.
+
+**Write API** (`server/writes.ts`). Each route calls the same operation as the matching CLI
+command and commits the touched paths the same way, so the board can never write what
+`anvil validate` would reject:
+
+| Route | Operation |
+| --- | --- |
+| `POST /api/items` | `item create` (answers `201`) |
+| `PATCH /api/items/<id>` | `item set`; lists as arrays, `null` removes a field |
+| `POST /api/items/<id>/status` | `item status`; `done` without evidence saves `confirmed by user (board)` |
+| `POST /api/items/<id>/move` | `item move` |
+| `POST /api/items/<id>/promote` | `project promote` |
+| `POST /api/items/<id>/steps` | `step add` |
+| `POST /api/items/<id>/steps/<n>` | `step check`, `uncheck` or `skip` (`action`) |
+| `POST /api/projects/<id>/journal` | `journal add` |
+| `POST /api/projects/<id>/release` | `project release` (`dryRun` for the preview) |
+
+- Routes on an item need `If-Match` with the ETag the board last saw (`428` without it). If the
+  file changed since, the answer is `409` with the current item under `current`, and nothing is
+  written; the board shows it in the "changed on disk" dialog. A change between the request's
+  read and its write is caught by the write path's own modification-time check, with the same
+  answer.
+- While the data space does not validate, every write answers `423`: the board is read-only
+  until `anvil validate` passes.
+- A successful write returns the operation's result, the `commit` (or why there was none) and
+  the changed `item` with its new ETag. A failed commit does not undo the write; it is reported.
+- Bad bodies answer `400` (unknown fields included, to catch typos), broken rules `422` with the
+  same message as the CLI, bodies over 256 KiB `413`. Request handling is asynchronous only
+  while the body arrives; each operation then runs synchronously, so two board requests never
+  interleave their writes.
+
+**Changes on disk.** `GET /api/events` is an event stream fed by a recursive `fs.watch` of the
+data space (`server/events.ts`). It sends `hello` with `{ watching }` on connect, then `change`
+with the paths that changed, debounced. An empty `paths` list means "reload everything": Windows
+sends events without a name when many files change at once (a git commit). Hidden temp files of atomic writes and `.git/` are
+ignored. If watching is unavailable or fails, it sends `mode` with `{ watching: false }` and the
+board polls `/api/space` every 5 seconds, comparing `stamp`. Because the stream also needs the
+token header, the board reads it with `fetch` instead of `EventSource`, which cannot send
+headers.
+
 ## Errors and exit codes
 
 | Code | Meaning | Error type |
@@ -107,4 +184,8 @@ break a session.
 - Tests that commit create a real git repository with a made-up identity.
 - `test/item.test.ts` checks that every example item survives a parse and a write byte for
   byte, so rewriting an item only changes what a command meant to change.
+- `test/server.test.ts` and `test/server-writes.test.ts` start real servers on free ports over
+  made-up data spaces and check the security rules with raw HTTP requests (foreign Host, Origin
+  and Sec-Fetch-Site, missing token, path traversal), the read and write API, conflicts, history
+  and git status, and the change feed.
 - `npm run check` (types, tests and the example data space) must pass before any change is done.

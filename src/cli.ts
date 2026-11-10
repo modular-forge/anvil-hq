@@ -14,6 +14,7 @@ import { initSpace } from './init.ts';
 import { serializeItem } from './item.ts';
 import { archiveItems, search, type ArchiveResult } from './maintenance.ts';
 import { migrate } from './migrate.ts';
+import { DEFAULT_PORT, startServer } from './server/server.ts';
 import { createProject, linkProject, promoteIdea, releaseProject, scaffoldProject, type ReleaseResult } from './projects.ts';
 import { OPEN_STATUSES } from './rules.ts';
 import {
@@ -58,7 +59,7 @@ interface CommandBase {
 /** Runs without opening the data space and returns an exit code. */
 interface StandaloneCommand extends CommandBase {
   kind: 'standalone';
-  run: (call: Invocation) => number;
+  run: (call: Invocation) => number | Promise<number>;
 }
 
 /** Reads the data space and returns an exit code. */
@@ -120,6 +121,12 @@ const COMMANDS: Record<string, Command> = {
     summary: "Summary of the open items of the current repository's project, for a session hook",
     options: { project: { type: 'string' } },
     run: runBriefing,
+  },
+  serve: {
+    kind: 'standalone',
+    usage: 'serve',
+    summary: `Start the local board on http://127.0.0.1:${DEFAULT_PORT} and print its private URL (Ctrl+C stops it)`,
+    run: runServe,
   },
   search: {
     kind: 'read',
@@ -307,7 +314,7 @@ const COMMANDS: Record<string, Command> = {
 export async function main(argv: string[], options: Partial<Io> = {}): Promise<number> {
   const io: Io = { stdout: process.stdout, stderr: process.stderr, env: process.env, cwd: process.cwd(), now: () => new Date(), ...options };
   try {
-    return dispatch(argv, io);
+    return await dispatch(argv, io);
   } catch (error) {
     if (error instanceof UsageError || error instanceof DataDirError) {
       io.stderr.write(`anvil: ${error.message}\n`);
@@ -321,7 +328,7 @@ export async function main(argv: string[], options: Partial<Io> = {}): Promise<n
   }
 }
 
-function dispatch(argv: string[], io: Io): number {
+async function dispatch(argv: string[], io: Io): Promise<number> {
   // A lenient first pass finds the command, so global options may come before it.
   const words = parseArgs({ args: argv, options: GLOBAL_OPTIONS, allowPositionals: true, strict: false }).positionals;
   const name = [`${words[0]} ${words[1]}`, words[0]].find((candidate) => candidate !== undefined && Object.hasOwn(COMMANDS, candidate));
@@ -422,6 +429,19 @@ function runDoctor({ values, io }: Invocation): number {
     for (const r of results) io.stdout.write(`${marks[r.status]}  ${r.check.padEnd(11)} ${r.detail}\n`);
   }
   return results.some((r) => r.status === 'fail') ? 1 : 0;
+}
+
+/** Starts the server and returns; the open server keeps the process running until Ctrl+C. */
+async function runServe({ values, io }: Invocation): Promise<number> {
+  const { dir } = resolveDataDir({ flag: str(values, 'data'), env: io.env, cwd: io.cwd });
+  const server = await startServer({ dir, logError: (error) => io.stderr.write(`anvil serve: ${(error as Error).stack ?? String(error)}\n`) });
+  if (bool(values, 'json')) {
+    io.stdout.write(`${JSON.stringify({ url: server.url, port: server.port, dir }, null, 2)}\n`);
+    return 0;
+  }
+  io.stdout.write(`anvil board for ${dir}\n\n  ${server.url}\n\n`);
+  io.stdout.write('Open that URL in your browser. It carries a private token: do not share it. Press Ctrl+C to stop.\n');
+  return 0;
 }
 
 /** Never fails: a session hook must not break a session. Problems go to stderr only. */
