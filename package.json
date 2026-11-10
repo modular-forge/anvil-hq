@@ -6,17 +6,23 @@
   "private": true,
   "type": "module",
   "bin": {
-    "anvil": "bin/anvil.js"
+    "anvil": "bin/anvil.ts"
   },
   "engines": {
     "node": ">=24"
   },
   "scripts": {
-    "test": "node --test \"test/**/*.test.js\"",
-    "validate:examples": "node bin/anvil.js validate --data examples"
+    "typecheck": "tsc",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "validate:examples": "node bin/anvil.ts validate --data examples",
+    "check": "npm run typecheck && npm test && npm run validate:examples"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/modular-forge/anvil-hq.git"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
   }
 }
