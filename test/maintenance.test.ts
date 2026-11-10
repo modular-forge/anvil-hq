@@ -9,7 +9,7 @@ import { archiveItems, isFinal, search } from '../src/maintenance.ts';
 import { CURRENT_VERSION, migrate } from '../src/migrate.ts';
 import { openSpace } from '../src/store.ts';
 import { validateSpace } from '../src/validate.ts';
-import { NOW, fields, initRepo, itemText, makeSpace, item } from './support.ts';
+import { NOW, fields, initRepo, itemText, makeSpace, item, shortPath } from './support.ts';
 
 const versioned = { release: 'versioned' };
 const unversioned = { release: 'none' };
@@ -190,6 +190,14 @@ describe('doctor', () => {
     assert.equal(hookCheck(clone)?.status, 'ok');
     assert.equal(hookCheck(join(clone, '.githooks')), null, 'a folder inside another repository is not a clone');
     assert.equal(hookCheck(makeSpace(t, { 'projects.json': undefined })), null, 'not a git clone: nothing to check');
+  });
+
+  it('recognises the clone through a Windows 8.3 short path', (t) => {
+    const clone = makeSpace(t, { 'projects.json': undefined, '.githooks/pre-commit': '#!/bin/sh\n' });
+    initRepo(clone);
+    const short = shortPath(clone);
+    if (!short) return t.skip('no 8.3 short names here');
+    assert.equal(hookCheck(short)?.status, 'warn');
   });
 });
 

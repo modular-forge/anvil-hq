@@ -45,6 +45,19 @@ export function initRepo(dir: string): (...args: string[]) => string {
   return git;
 }
 
+/**
+ * The Windows 8.3 short form of an existing folder (C:\Users\RUNNER~1\…), or null where there is
+ * none: other systems, or volumes with short names disabled. GitHub's Windows runners have them.
+ */
+export function shortPath(path: string): string | null {
+  if (process.platform !== 'win32') return null;
+  const short = execFileSync('powershell', ['-NoProfile', '-Command', '(New-Object -ComObject Scripting.FileSystemObject).GetFolder($env:ANVIL_TEST_PATH).ShortPath'], {
+    encoding: 'utf8',
+    env: { ...process.env, ANVIL_TEST_PATH: path },
+  }).trim();
+  return short && short.toLowerCase() !== path.toLowerCase() ? short : null;
+}
+
 /** A fixed local time for the tests: 10 November 2026, 09:05. */
 export const NOW = new Date(2026, 10, 10, 9, 5);
 

@@ -2,10 +2,10 @@
 
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join } from 'node:path';
 import { TOOL_ROOT } from './data-dir.ts';
 import { errorCode } from './fsutil.ts';
-import { configValue, isRepository, originUrl, repoSlug, repositoryRoot, uncommittedChanges, unpushedCount } from './git.ts';
+import { configValue, isRepository, isRepositoryRoot, originUrl, repoSlug, uncommittedChanges, unpushedCount } from './git.ts';
 import { validateSpace } from './validate.ts';
 
 export type CheckStatus = 'ok' | 'warn' | 'fail';
@@ -67,8 +67,7 @@ export function doctor(dir: string, { gh = ghVisibility, toolRoot = TOOL_ROOT }:
  * active in this clone. Null when anvil is not running from a git clone (nothing to protect).
  */
 export function hookCheck(toolRoot: string): Omit<CheckResult, 'check'> | null {
-  const root = repositoryRoot(toolRoot);
-  if (!root || relative(root, toolRoot) !== '') return null;
+  if (!isRepositoryRoot(toolRoot)) return null;
   const hooksPath = configValue(toolRoot, 'core.hooksPath');
   if (hooksPath === '.githooks' && existsSync(join(toolRoot, '.githooks', 'pre-commit'))) {
     return { status: 'ok', detail: 'the anvil-hq pre-commit hook is active' };
