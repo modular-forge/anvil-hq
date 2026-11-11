@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mtimeOf } from '../fsutil.ts';
 import { fileHistory, isRepository, oldestUnpushedDate, uncommittedChanges, unpushedCount } from '../git.ts';
+import { descriptionOf } from '../item.ts';
 import { search } from '../maintenance.ts';
 import { RESERVED_AREAS } from '../rules.ts';
 import { listJournal, openSpace } from '../store.ts';
@@ -120,7 +121,7 @@ function itemDetail(ctx: Context, id: string): ApiResponse {
 /** Everything the detail panel shows of an item. */
 export function detail(ctx: Context, entry: ItemEntry) {
   const children = childrenOf(entry, ctx.space.items, ctx.byId).map(summary);
-  return { ...summary(entry), body: entry.item.body, steps: entry.item.steps, children };
+  return { ...summary(entry), body: entry.item.body, description: descriptionOf(entry.item.body), steps: entry.item.steps, children };
 }
 
 /** The commits that changed an item's file, through moves and archiving. */

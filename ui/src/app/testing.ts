@@ -25,7 +25,7 @@ export function step(index: number, text: string, checked = false): Step {
 
 /** An item as the detail API returns it. */
 export function detail(id: string, fields: Partial<ItemFields> = {}, steps: Step[] = [], children: ItemSummary[] = []): ItemDetail {
-  return { ...summary(id, fields, steps), body: '', steps, children };
+  return { ...summary(id, fields, steps), body: '', description: '', steps, children };
 }
 
 export function project(overrides: Partial<Project> & Pick<Project, 'id'>): Project {

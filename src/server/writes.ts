@@ -9,7 +9,7 @@
 import { AnvilError, ConflictError } from '../errors.ts';
 import { commitPaths } from '../git.ts';
 import { promoteIdea, releaseProject } from '../projects.ts';
-import { SETTABLE_FIELDS, addJournal, addStep, changeStep, createItem, moveItem, openSpace, setFields, setStatus, type StepAction } from '../store.ts';
+import { SETTABLE_FIELDS, addJournal, addStep, changeStep, createItem, moveItem, openSpace, setDescription, setFields, setStatus, type StepAction } from '../store.ts';
 import type { Change, CommitResult, Context, ItemEntry } from '../types.ts';
 import { validateSpace } from '../validate.ts';
 import { badRequest, decode, detail, etagOf, notFound, type ApiResponse } from './api.ts';
@@ -71,6 +71,10 @@ const ROUTES: Route[] = [
       const evidence = text(body, 'evidence')?.trim() || (status === 'done' ? BOARD_EVIDENCE : undefined);
       return setStatus(ctx, param(params, 0), status, { reason: text(body, 'reason')?.trim(), evidence, release: text(body, 'release') }, now);
     },
+  },
+  {
+    method: 'POST', pattern: /^\/api\/items\/([^/]+)\/description$/, target: 'item', keys: ['text'],
+    run: ({ ctx, params, body }) => setDescription(ctx, param(params, 0), text(body, 'text') ?? ''),
   },
   {
     method: 'POST', pattern: /^\/api\/items\/([^/]+)\/move$/, target: 'item', keys: ['project'],

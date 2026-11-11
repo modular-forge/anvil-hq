@@ -119,6 +119,11 @@ export class Api {
     return this.#write(this.#http.patch<WriteResult>(itemUrl(item.id), changes, ifMatch(item.etag)));
   }
 
+  /** Replaces the description; the steps stay. An empty text removes it. */
+  setDescription(item: Pick<ItemSummary, 'id' | 'etag'>, text: string): Promise<WriteResult> {
+    return this.#write(this.#http.post<WriteResult>(`${itemUrl(item.id)}/description`, { text }, ifMatch(item.etag)));
+  }
+
   move(item: Pick<ItemSummary, 'id' | 'etag'>, project: string): Promise<WriteResult> {
     return this.#write(this.#http.post<WriteResult>(`${itemUrl(item.id)}/move`, { project }, ifMatch(item.etag)));
   }

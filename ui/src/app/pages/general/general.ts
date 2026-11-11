@@ -1,3 +1,4 @@
+import { Markdown } from '../../shared/markdown/markdown';
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Api } from '../../core/api';
@@ -27,7 +28,7 @@ interface Decision {
 @Component({
   selector: 'anv-general',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [Markdown, RouterLink],
   templateUrl: './general.html',
   styleUrl: './general.scss',
 })

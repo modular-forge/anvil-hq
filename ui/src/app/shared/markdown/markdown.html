@@ -1,0 +1,35 @@
+@for (block of blocks(); track $index) {
+  @switch (block.type) {
+    @case ('p') {
+      <p><ng-container *ngTemplateOutlet="parts; context: { $implicit: block.parts }" /></p>
+    }
+    @case ('h') {
+      @if (block.level === 1) {
+        <h4><ng-container *ngTemplateOutlet="parts; context: { $implicit: block.parts }" /></h4>
+      } @else if (block.level === 2) {
+        <h5><ng-container *ngTemplateOutlet="parts; context: { $implicit: block.parts }" /></h5>
+      } @else {
+        <h6><ng-container *ngTemplateOutlet="parts; context: { $implicit: block.parts }" /></h6>
+      }
+    }
+    @case ('ul') {
+      <ul>
+        @for (entry of block.items; track $index) {
+          <li><ng-container *ngTemplateOutlet="parts; context: { $implicit: entry }" /></li>
+        }
+      </ul>
+    }
+    @case ('ol') {
+      <ol>
+        @for (entry of block.items; track $index) {
+          <li><ng-container *ngTemplateOutlet="parts; context: { $implicit: entry }" /></li>
+        }
+      </ol>
+    }
+    @case ('code') {
+      <pre class="mono"><code>{{ block.text }}</code></pre>
+    }
+  }
+}
+
+<ng-template #parts let-parts>@for (part of parts; track $index) {@let v = view(part);@switch (v.kind) {@case ('id') {@if (linkMentions()) {<button type="button" class="mention mono" (click)="mention.emit(v.text)">{{ v.text }}</button>} @else {<span class="mono">{{ v.text }}</span>}} @case ('code') {<code class="mono">{{ v.text }}</code>} @case ('strong') {<strong>{{ v.text }}</strong>} @case ('em') {<em>{{ v.text }}</em>} @case ('link') {<a [href]="v.href" target="_blank" rel="noopener noreferrer">{{ v.text }}<span class="sr-only"> (opens in a new tab)</span></a>} @default {{{ v.text }}}}}</ng-template>

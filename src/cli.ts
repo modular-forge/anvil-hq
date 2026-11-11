@@ -20,7 +20,7 @@ import { PROJECT_SETTABLE, createProject, linkProject, promoteIdea, releaseProje
 import { OPEN_STATUSES } from './rules.ts';
 import {
   CREATE_STATUSES, SETTABLE_FIELDS, addJournal, addStep, changeStep, createItem, getItem, getProject, listJournal,
-  moveItem, openSpace, setFields, setStatus,
+  moveItem, openSpace, setDescription, setFields, setStatus,
 } from './store.ts';
 import type { Change, Context } from './types.ts';
 import { childrenOf, validateSpace } from './validate.ts';
@@ -273,6 +273,13 @@ const COMMANDS: Record<string, Command> = {
     options: Object.fromEntries(SETTABLE_FIELDS.map((field) => [field, { type: 'string' }])) as ParseArgsOptionsConfig,
     run: ({ ctx, values, args }) => setFields(ctx, arg(args, 'id'),
       Object.fromEntries(SETTABLE_FIELDS.flatMap((field) => { const value = str(values, field); return value === undefined ? [] : [[field, value]]; }))),
+  }),
+  'item describe': write({
+    usage: 'item describe <id> (--text "…" | --file <path>)',
+    summary: 'Replace the description (the Markdown body without the steps); the steps stay. --text "" removes it',
+    args: ['id'],
+    options: { text: { type: 'string' }, file: { type: 'string' } },
+    run: ({ ctx, values, args, io }) => setDescription(ctx, arg(args, 'id'), descriptionInput(values, io.cwd)),
   }),
   'item move': write({
     usage: 'item move <id> <project>',
@@ -600,6 +607,17 @@ function bool(values: Values, key: string): boolean {
 function list(values: Values, key: string): string[] {
   const value = values[key];
   return Array.isArray(value) ? value : [];
+}
+
+/** The new description of `item describe`: --text, or the contents of --file; exactly one. */
+function descriptionInput(values: Values, cwd: string): string {
+  const text = str(values, 'text');
+  const file = str(values, 'file');
+  if ((text === undefined) === (file === undefined)) throw new UsageError('item describe needs either --text "…" or --file <path>');
+  if (text !== undefined) return text;
+  const path = resolve(cwd, file ?? '');
+  if (!existsSync(path)) throw new UsageError(`${path} does not exist`);
+  return readFileSync(path, 'utf8');
 }
 
 /** A required positional argument; bindArgs has already checked it is there. */

@@ -31,29 +31,7 @@
         </button>
         @if (open() === item.id) {
           <div class="details" [id]="'inbox-' + item.id">
-            @for (block of blocks(item.id); track $index) {
-              @if (block.type === 'p') {
-                <p>
-                  @for (part of block.parts; track $index) {
-                    @if ('text' in part) {
-                      {{ part.text }}
-                    }
-                  }
-                </p>
-              } @else {
-                <ul class="bullets">
-                  @for (entry of block.items; track $index) {
-                    <li>
-                      @for (part of entry; track $index) {
-                        @if ('text' in part) {
-                          {{ part.text }}
-                        }
-                      }
-                    </li>
-                  }
-                </ul>
-              }
-            }
+            <anv-markdown [blocks]="blocks(item.id)" [linkMentions]="false" />
 
             @if (!readOnly()) {
               @if (moving() === item.id) {

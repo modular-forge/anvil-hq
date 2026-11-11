@@ -1,20 +1,39 @@
-// An item's body as the detail panel shows it: paragraphs and bullet lists, with mentions of
-// other items (like AB-12) turned into links. Steps are shown apart, so their lines are left out.
-// Plain data, rendered by the template: never HTML.
+// An item's body as the board shows it: a safe subset of Markdown (paragraphs, headings, bullet
+// and numbered lists, code blocks; bold, italics, inline code and http(s) links), with mentions
+// of other items (like AB-12) turned into links. Steps are shown apart, so their lines are left
+// out. Plain data, rendered by the template: never HTML, so nothing in a body can run.
 
 import type { ItemDetail } from './models';
 
-export type Inline = { text: string } | { id: string };
+/** Plain text, or a mention of an item: what journal notes show. */
+export type Mention = { text: string } | { id: string };
 
-export type Block = { type: 'p'; parts: Inline[] } | { type: 'ul'; items: Inline[][] };
+export type Inline =
+  | Mention
+  | { code: string }
+  | { strong: string }
+  | { em: string }
+  | { link: string; href: string };
 
-const STEP = /^\s*- \[[ xX]\] /;
-const BULLET = /^\s*[-*] /;
+export type Block =
+  | { type: 'p'; parts: Inline[] }
+  | { type: 'h'; level: 1 | 2 | 3; parts: Inline[] }
+  | { type: 'ul'; items: Inline[][] }
+  | { type: 'ol'; items: Inline[][] }
+  | { type: 'code'; text: string };
+
+const STEP = /^\s*[-*+] \[[ xX]\] /;
+const BULLET = /^\s*[-*+] (.*)$/;
+const NUMBERED = /^\s*\d+[.)] (.*)$/;
+const HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
+const FENCE = /^\s*(```|~~~)/;
 const MENTION = /\b[A-Z]{2,4}-[1-9][0-9]*\b/g;
+// Inline code, [text](http…), **bold**, *italics* or _italics_, in that order of precedence.
+const INLINE = /`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*]+?)\*\*|(?<![\w*])\*([^*\s](?:[^*]*?[^*\s])?)\*(?![\w*])|(?<![\w_])_([^_\s](?:[^_]*?[^_\s])?)_(?![\w_])/g;
 
 /** Splits `text` into plain text and mentions of ids that `known` accepts. */
-export function mentions(text: string, known: (id: string) => boolean): Inline[] {
-  const parts: Inline[] = [];
+export function mentions(text: string, known: (id: string) => boolean): Mention[] {
+  const parts: Mention[] = [];
   let last = 0;
   for (const match of text.matchAll(MENTION)) {
     const id = match[0];
@@ -27,26 +46,78 @@ export function mentions(text: string, known: (id: string) => boolean): Inline[]
   return parts;
 }
 
+/** Inline Markdown of one line or paragraph; mentions are found in the plain text only. */
+export function inline(text: string, known: (id: string) => boolean): Inline[] {
+  const parts: Inline[] = [];
+  let last = 0;
+  for (const match of text.matchAll(INLINE)) {
+    if (match.index > last) parts.push(...mentions(text.slice(last, match.index), known));
+    const [, code, label, href, strong, starEm, underEm] = match;
+    if (code !== undefined) parts.push({ code });
+    else if (label !== undefined && href !== undefined) parts.push({ link: label, href });
+    else if (strong !== undefined) parts.push({ strong });
+    else parts.push({ em: starEm ?? underEm ?? '' });
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) parts.push(...mentions(text.slice(last), known));
+  return parts;
+}
+
 export function bodyBlocks(body: string, known: (id: string) => boolean): Block[] {
-  const lines = body.replaceAll('\r\n', '\n').split('\n').filter((line) => !STEP.test(line));
-  const paragraphs: string[][] = [];
-  let current: string[] = [];
-  for (const line of lines) {
-    if (line.trim() === '') {
-      if (current.length) paragraphs.push(current);
-      current = [];
+  const blocks: Block[] = [];
+  let paragraph: string[] = [];
+  let list: { type: 'ul' | 'ol'; items: string[] } | null = null;
+  let code: string[] | null = null;
+
+  const flush = () => {
+    if (paragraph.length) blocks.push({ type: 'p', parts: inline(paragraph.join(' '), known) });
+    if (list) blocks.push({ type: list.type, items: list.items.map((item) => inline(item, known)) });
+    paragraph = [];
+    list = null;
+  };
+
+  for (const raw of body.replaceAll('\r\n', '\n').split('\n')) {
+    if (code) {
+      if (FENCE.test(raw)) {
+        blocks.push({ type: 'code', text: code.join('\n') });
+        code = null;
+      } else {
+        code.push(raw);
+      }
+      continue;
+    }
+    if (FENCE.test(raw)) {
+      flush();
+      code = [];
+      continue;
+    }
+    if (STEP.test(raw)) continue;
+    const line = raw.trim();
+    const heading = HEADING.exec(line);
+    const bullet = BULLET.exec(raw);
+    const numbered = NUMBERED.exec(raw);
+    if (!line) {
+      flush();
+    } else if (heading) {
+      flush();
+      const level = Math.min(3, heading[1]?.length ?? 1) as 1 | 2 | 3;
+      blocks.push({ type: 'h', level, parts: inline(heading[2] ?? '', known) });
+    } else if (bullet || numbered) {
+      const type = bullet ? 'ul' : 'ol';
+      if (paragraph.length || (list && list.type !== type)) flush();
+      list ??= { type, items: [] };
+      list.items.push((bullet?.[1] ?? numbered?.[1] ?? '').trim());
+    } else if (list && /^\s+/.test(raw)) {
+      // An indented line continues the list item above it.
+      list.items[list.items.length - 1] += ` ${line}`;
     } else {
-      current.push(line);
+      if (list) flush();
+      paragraph.push(line);
     }
   }
-  if (current.length) paragraphs.push(current);
-
-  return paragraphs.map((paragraph): Block => {
-    if (paragraph.every((line) => BULLET.test(line))) {
-      return { type: 'ul', items: paragraph.map((line) => mentions(line.replace(BULLET, '').trim(), known)) };
-    }
-    return { type: 'p', parts: mentions(paragraph.map((line) => line.trim()).join(' '), known) };
-  });
+  if (code) blocks.push({ type: 'code', text: (code as string[]).join('\n') });
+  flush();
+  return blocks;
 }
 
 /**

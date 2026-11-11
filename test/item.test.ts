@@ -3,7 +3,7 @@ import { globSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { parseItem, parseSteps, serializeItem } from '../src/item.ts';
+import { descriptionOf, parseItem, parseSteps, serializeItem, withDescription } from '../src/item.ts';
 import type { ItemFields } from '../src/types.ts';
 
 describe('parseSteps', () => {
@@ -29,6 +29,30 @@ describe('parseSteps', () => {
 
   it('ignores lines that only look like checkboxes', () => {
     assert.deepEqual(parseSteps('- [] no space\n-[ ] no gap\n- [y] other mark\n- [ ]\n'), []);
+  });
+});
+
+describe('descriptionOf and withDescription', () => {
+  const body = 'Why it matters.\n\n## Steps\n- [x] First\n- [x] ~~Second~~ (skipped: not needed)\n- [ ] Third\n\nA note after the steps.\n';
+
+  it('reads the body without its steps, text after them included', () => {
+    assert.equal(descriptionOf(body), 'Why it matters.\n\n## Steps\n\nA note after the steps.');
+    assert.equal(descriptionOf('- [ ] Only a step\n'), '');
+    assert.equal(descriptionOf('```\n- [ ] code, not a step\n```\n'), '```\n- [ ] code, not a step\n```');
+  });
+
+  it('puts a new description before the steps, which keep their state and order', () => {
+    const next = withDescription(body, '  New text.\r\n\r\n- a bullet  ');
+    assert.equal(next, 'New text.\n\n- a bullet\n\n- [x] First\n- [x] ~~Second~~ (skipped: not needed)\n- [ ] Third\n');
+    assert.deepEqual(parseSteps(next ?? '').map((s) => [s.text, s.checked]), parseSteps(body).map((s) => [s.text, s.checked]));
+    assert.equal(descriptionOf(next ?? ''), 'New text.\n\n- a bullet');
+  });
+
+  it('removes the description when it is empty, and refuses checkboxes that would become steps', () => {
+    assert.equal(withDescription(body, '  '), '- [x] First\n- [x] ~~Second~~ (skipped: not needed)\n- [ ] Third\n');
+    assert.equal(withDescription('Old text\n', ''), '');
+    assert.equal(withDescription(body, 'Text\n- [ ] a new step'), null);
+    assert.equal(withDescription(body, '```\n- [ ] in code\n```'), '```\n- [ ] in code\n```\n\n- [x] First\n- [x] ~~Second~~ (skipped: not needed)\n- [ ] Third\n');
   });
 });
 

@@ -26,11 +26,13 @@ describe('isWebLink', () => {
 
 describe('ItemPage', () => {
   let patches: { id: string; changes: FieldChanges }[];
+  let descriptions: { id: string; text: string }[];
   let current: ItemDetail;
   const spaceSignal = signal<Space | null>(space());
 
   beforeEach(() => {
     patches = [];
+    descriptions = [];
     spaceSignal.set(space());
     current = detail(
       'AL-7',
@@ -39,6 +41,7 @@ describe('ItemPage', () => {
       [summary('AL-8', { parent: 'AL-7', status: 'doing' }), summary('AL-9', { parent: 'AL-7', status: 'done', evidence: 'x' })],
     );
     current.body = 'Scan receipts. Amounts as in AL-8.';
+    current.description = current.body;
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -48,6 +51,10 @@ describe('ItemPage', () => {
             item: () => Promise.resolve(current),
             history: () => Promise.resolve([{ hash: 'abc1234', date: '2026-11-01T10:00:00Z', subject: 'AL-7: todo → doing' }]),
             items: () => Promise.resolve([current, ...current.children]),
+            setDescription: (item: { id: string }, text: string): Promise<WriteResult> => {
+              descriptions.push({ id: item.id, text });
+              return Promise.resolve({ message: 'ok', commit: null, item: null });
+            },
             setFields: (item: { id: string }, changes: FieldChanges): Promise<WriteResult> => {
               patches.push({ id: item.id, changes });
               return Promise.resolve({ message: 'ok', commit: null, item: null });
@@ -123,5 +130,33 @@ describe('ItemPage', () => {
     expect(el.querySelector('#title-button')).toBeNull();
     expect(el.querySelector<HTMLSelectElement>('#item-priority')?.disabled).toBe(true);
     expect(el.querySelector('.actions')).toBeNull();
+  });
+
+  it('edits the description in Markdown, saving with Ctrl Enter and cancelling with Escape', async () => {
+    const fixture = await render();
+    const el = fixture.nativeElement as HTMLElement;
+    const editButton = () => el.querySelector<HTMLButtonElement>('.description .edit');
+    editButton()?.click();
+    await fixture.whenStable();
+    const area = el.querySelector<HTMLTextAreaElement>('#desc-text');
+    expect(area?.value).toBe('Scan receipts. Amounts as in AL-8.');
+    if (!area) return;
+
+    area.value = 'Changed';
+    area.dispatchEvent(new Event('input'));
+    area.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await fixture.whenStable();
+    expect(el.querySelector('#desc-text')).toBeNull();
+    expect(descriptions).toEqual([]);
+
+    editButton()?.click();
+    await fixture.whenStable();
+    const again = el.querySelector<HTMLTextAreaElement>('#desc-text');
+    if (!again) return;
+    again.value = '## Why\n\nPeople **never** type receipts.';
+    again.dispatchEvent(new Event('input'));
+    again.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true }));
+    await fixture.whenStable();
+    expect(descriptions).toEqual([{ id: 'AL-7', text: '## Why\n\nPeople **never** type receipts.' }]);
   });
 });

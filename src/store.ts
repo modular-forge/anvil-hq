@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AnvilError } from './errors.ts';
 import { assertInside, createExclusive, errorCode, removeFile, writeAtomic } from './fsutil.ts';
-import { parseSteps, serializeItem } from './item.ts';
+import { parseSteps, serializeItem, withDescription } from './item.ts';
 import { registryMtime } from './registry.ts';
 import { CLOSED_STATUSES, CONTAINER_KINDS, OPEN_STATUSES, closeBlockers } from './rules.ts';
 import { indexItems, projectMap, readSpace } from './space.ts';
@@ -127,6 +127,20 @@ export function setStatus(ctx: Context, id: string, status: string, { reason, ev
 
   write(ctx, entry, { fields: next, body: entry.item.body });
   return { id: fields.id, paths: [entry.file], message: `${fields.id}: ${fields.status} → ${status}`, hint: parentHint(ctx, entry, status) };
+}
+
+/**
+ * Replaces an item's description (its body without the steps); the steps stay as they are,
+ * after it. An empty description removes it. Steps are added with addStep, never through here.
+ */
+export function setDescription(ctx: Context, id: string, description: string): Change & { id: string } {
+  const entry = getEditable(ctx, id);
+  const { fields, body } = entry.item;
+  const next = withDescription(body, description);
+  if (next === null) throw new AnvilError(`a description cannot hold checkboxes (- [ ] …): they would become steps; add steps with \`anvil step add ${fields.id} "…"\``);
+  if (next === body) throw new AnvilError(`${fields.id} already has that description`);
+  write(ctx, entry, { fields, body: next });
+  return { id: fields.id, paths: [entry.file], message: `${fields.id}: ${description.trim() ? 'edit' : 'remove'} description` };
 }
 
 /** Changes header fields. An empty value removes the field; list fields are comma-separated. */

@@ -2,20 +2,97 @@
 
 .description {
   @include section.stack;
-
-  p,
-  li {
-    margin: 0;
-    font-size: var(--body-size, 14px);
-    line-height: 1.6;
-  }
-
-  ul {
-    padding-left: 18px;
-    list-style: disc;
-  }
 }
 
-.mention {
-  @include section.text-link;
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+// On the item page the heading is for screen readers only: the edit button sits on its own.
+.section-head.quiet {
+  justify-content: flex-end;
+  margin-bottom: -6px;
+}
+
+.edit {
+  margin-left: auto;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--tx3);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.edit:hover {
+  border-color: var(--line2);
+  color: var(--tx2);
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 160px;
+  padding: 10px 12px;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-m);
+  background: var(--bg);
+  color: var(--tx);
+  font-size: 13px;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+textarea:focus {
+  border-color: var(--hot2);
+}
+
+.hint {
+  margin: 0;
+  color: var(--tx3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.buttons button {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-m);
+  background: var(--s2);
+  color: var(--tx);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.buttons .save {
+  border: 0;
+  background: var(--hotbtn);
+  color: var(--hotink);
+  font-weight: 600;
+}
+
+.buttons button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.keys {
+  color: var(--tx3);
+  font-size: 11px;
 }

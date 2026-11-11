@@ -5,7 +5,7 @@ import { describe, it } from 'node:test';
 import { AnvilError, ConflictError } from '../src/errors.ts';
 import { parseItem } from '../src/item.ts';
 import {
-  addJournal, addStep, changeStep, createItem, listJournal, moveItem, nextNumber, openSpace, setFields, setStatus,
+  addJournal, addStep, changeStep, createItem, listJournal, moveItem, nextNumber, openSpace, setDescription, setFields, setStatus,
 } from '../src/store.ts';
 import { validateSpace } from '../src/validate.ts';
 import { NOW, fields, itemText, makeSpace, item } from './support.ts';
@@ -152,6 +152,26 @@ describe('setFields', () => {
     assert.throws(() => setFields(ctx, 'AL-1', { kind: 'task' }), /has child tasks/);
     assert.throws(() => setFields(ctx, 'AL-2', {}), /nothing to set/);
     assert.throws(() => setFields(ctx, 'AL-2', { status: 'done' }), AnvilError);
+  });
+});
+
+describe('setDescription', () => {
+  it('replaces the description, keeps the steps, and leaves the item valid', (t) => {
+    const dir = makeSpace(t, item('alpha', 'AL-1', { status: 'doing' }, 'Old text.\n\n- [x] One\n- [ ] Two\n'));
+    const result = setDescription(openSpace(dir), 'AL-1', 'New text with a [link](https://example.com).');
+    assert.deepEqual(result, { id: 'AL-1', paths: ['projects/alpha/items/AL-1.md'], message: 'AL-1: edit description' });
+    const after = read(dir, 'projects/alpha/items/AL-1.md');
+    assert.equal(after.body, 'New text with a [link](https://example.com).\n\n- [x] One\n- [ ] Two\n');
+    assert.equal(after.fields.status, 'doing');
+    assert.equal(setDescription(openSpace(dir), 'AL-1', '').message, 'AL-1: remove description');
+    assert.deepEqual(validateSpace(dir).errors, []);
+  });
+
+  it('refuses checkboxes, no change, and items it may not edit', (t) => {
+    const dir = makeSpace(t, item('alpha', 'AL-1', {}, 'Text\n'));
+    assert.throws(() => setDescription(openSpace(dir), 'AL-1', 'More\n- [ ] step'), /cannot hold checkboxes.*anvil step add AL-1/);
+    assert.throws(() => setDescription(openSpace(dir), 'AL-1', 'Text'), /already has that description/);
+    assert.throws(() => setDescription(openSpace(dir), 'AL-9', 'x'), /AL-9 not found/);
   });
 });
 

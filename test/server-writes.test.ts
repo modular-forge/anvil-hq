@@ -161,6 +161,23 @@ describe('server writes: steps, move, promote', () => {
     assert.equal((await call('/api/items/AL-1/steps/9', { method: 'POST', headers: { 'if-match': tag }, json: { action: 'check' } })).status, 422);
   });
 
+  it('replaces the description and keeps the steps, refusing checkboxes', async (t) => {
+    const { call, etag, dir, lastCommit } = await serve(t);
+    assert.equal((await call('/api/items/AL-1')).json().description, 'Some notes.');
+    const reply = await call('/api/items/AL-1/description', { method: 'POST', headers: { 'if-match': await etag('AL-1') }, json: { text: 'New **notes**.\n\n- a bullet' } });
+    assert.equal(reply.status, 200);
+    assert.equal(reply.json().item.description, 'New **notes**.\n\n- a bullet');
+    assert.equal(lastCommit(), 'AL-1: edit description');
+    assert.match(read(dir, 'projects/alpha/items/AL-1.md'), /---\nNew \*\*notes\*\*\.\n\n- a bullet\n\n- \[ \] One\n- \[ \] Two\n$/);
+
+    const tag = reply.json().item.etag;
+    const refused = await call('/api/items/AL-1/description', { method: 'POST', headers: { 'if-match': tag }, json: { text: '- [ ] Three' } });
+    assert.equal(refused.status, 422);
+    assert.match(refused.json().error, /cannot hold checkboxes/);
+    assert.equal((await call('/api/items/AL-1/description', { method: 'POST', headers: { 'if-match': tag }, json: { text: 7 } })).status, 400);
+    assert.equal((await call('/api/items/AL-1/description', { method: 'POST', json: { text: 'x' } })).status, 428);
+  });
+
   it('moves an item with its tasks and returns it under its new id', async (t) => {
     const { call, etag, dir } = await serve(t);
     const reply = await call('/api/items/AL-1/move', { method: 'POST', headers: { 'if-match': await etag('AL-1') }, json: { project: 'beta' } });
