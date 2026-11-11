@@ -138,7 +138,7 @@ describe('briefing', () => {
     assert.ok(project);
     assert.equal(project.id, 'alpha');
     const text = briefing(ctx, project);
-    assert.match(text, /^# anvil: Alpha \(AL\), active\nThe alpha app\n/);
+    assert.match(text, /^# anvil: Alpha \(project alpha, prefix AL\), active\nThe alpha app\n/);
     assert.match(text, /## Doing\n- AL-1 Build it \[1\/2\]\n/);
     assert.match(text, /## Blocked\n- AL-2 Item AL-2 \(Waiting for design\)\n/);
     assert.match(text, /Backlog: 1 item\(s\)\. Inbox: 1 open item\(s\)\./);

@@ -5,6 +5,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs, type ParseArgsOptionsConfig } from 'node:util';
+import { audit } from './audit.ts';
 import { briefing, detectProject } from './briefing.ts';
 import { DataDirError, TOOL_ROOT, resolveDataDir, type Env } from './data-dir.ts';
 import { doctor } from './doctor.ts';
@@ -114,6 +115,13 @@ const COMMANDS: Record<string, Command> = {
     usage: 'doctor',
     summary: 'Check format, git identity, unpushed commits and that the data remote is private',
     run: runDoctor,
+  },
+  audit: {
+    kind: 'read',
+    usage: 'audit [--project <id>]',
+    summary: 'Point out items that have probably fallen behind: a feature whose tasks are all closed, long stays in doing…',
+    options: { project: { type: 'string' } },
+    run: runAudit,
   },
   briefing: {
     kind: 'standalone',
@@ -455,6 +463,23 @@ function runBriefing({ values, io }: Invocation): number {
   } catch (error) {
     io.stderr.write(`anvil briefing: ${(error as Error).message}\n`);
   }
+  return 0;
+}
+
+function runAudit({ ctx, values, io }: Invocation & { ctx: Context }): number {
+  const project = str(values, 'project');
+  if (project) getProject(ctx, project);
+  const findings = audit(ctx, io.now(), { project });
+  if (bool(values, 'json')) {
+    io.stdout.write(`${JSON.stringify(findings, null, 2)}\n`);
+    return 0;
+  }
+  if (!findings.length) {
+    io.stdout.write('Nothing to point out.\n');
+    return 0;
+  }
+  for (const f of findings) io.stdout.write(`${f.project}  ${f.id ?? '-'}  ${f.message}\n    ${f.hint}\n`);
+  io.stdout.write(`\n${findings.length} finding(s)\n`);
   return 0;
 }
 

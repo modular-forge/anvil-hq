@@ -38,7 +38,7 @@ export function briefing(ctx: Context, project: Project): string {
   };
 
   const lines = [
-    `# anvil: ${project.name} (${project.prefix}), ${project.state}`,
+    `# anvil: ${project.name} (project ${project.id}, prefix ${project.prefix}), ${project.state}`,
     ...(project.summary ? [project.summary] : []),
     ...(project.notion ? [`Notion: ${project.notion}`] : []),
     '',
