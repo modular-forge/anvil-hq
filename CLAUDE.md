@@ -134,6 +134,7 @@ src/git.ts          # commits of the touched paths only, retrying on index.lock
 src/errors.ts       # AnvilError (exit 1), UsageError (exit 2), ConflictError
 src/registry.ts     # writing projects.json in a stable style
 src/projects.ts     # project create, set, scaffold, promote, release, link
+src/release-git.ts  # release --ref: which done items a version has, from their evidence and git
 src/maintenance.ts  # archive and search
 src/init.ts         # init: new data space and user configuration
 src/briefing.ts     # briefing for the Claude Code session hook (never fails)

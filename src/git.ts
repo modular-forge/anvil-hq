@@ -207,6 +207,54 @@ function run(dir: string, args: string[], timeout: number): Promise<string> {
   });
 }
 
+/** The full hash of the commit `ref` names (a tag, a branch, a hash), or null if it names none. */
+export function resolveCommit(dir: string, ref: string): string | null {
+  if (!ref || ref.startsWith('-')) return null;
+  try {
+    return git(dir, ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Pull requests merged into `commit`'s history, by number, with their merge commit: GitHub's
+ * merge commits ("Merge pull request #14 from …") and squash merges ("Title (#14)").
+ */
+export function mergedPullRequests(dir: string, commit: string): Map<number, string> {
+  if (!/^[0-9a-f]{40,64}$/.test(commit)) return new Map();
+  const merged = new Map<number, string>();
+  let out: string;
+  try {
+    out = git(dir, ['log', '--format=%H%x1f%s', commit]);
+  } catch {
+    return merged;
+  }
+  for (const line of out.split('\n')) {
+    const [hash = '', subject = ''] = line.split('\x1f');
+    const number = /^Merge pull request #(\d+) from /.exec(subject)?.[1] ?? /\(#(\d+)\)$/.exec(subject)?.[1];
+    if (number && !merged.has(Number(number))) merged.set(Number(number), hash);
+  }
+  return merged;
+}
+
+/** Whether `hash` is a commit of this repository and part of `commit`'s history; null if git does not know it. */
+export function containsCommit(dir: string, hash: string, commit: string): boolean | null {
+  if (!/^[0-9a-f]{7,40}$/.test(hash)) return null;
+  try {
+    git(dir, ['cat-file', '-e', `${hash}^{commit}`]);
+  } catch {
+    return null;
+  }
+  try {
+    git(dir, ['merge-base', '--is-ancestor', hash, commit]);
+    return true;
+  } catch (error) {
+    if ((error as ExecError).status === 1) return false;
+    return null;
+  }
+}
+
 /** Commit date (ISO 8601) of the oldest commit the upstream does not have, or null. */
 export function oldestUnpushedDate(dir: string): string | null {
   try {

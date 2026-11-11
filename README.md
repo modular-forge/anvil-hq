@@ -73,6 +73,7 @@ anvil project create <id> --prefix AB --kind web --release none [--scaffold]
 anvil project scaffold <id>                               # starting items from the kind's template
 anvil project promote <idea-id> --id <id> --prefix AB --kind mobile --release versioned
 anvil project release <id> <version> [--exclude AB-7]… [--dry-run] [--out notes.md]
+anvil project release <id> <version> --ref v1.2.0 --dry-run  # inside the project's repo: only what that tag has
 anvil project set <id> --state paused                     # also --name, --summary, --kind, --notion
 anvil project link                                        # register the current repository
 anvil item create <project> --kind task --title "…" [--parent AB-3] [--step "…"]…
@@ -93,6 +94,16 @@ anvil audit [--project <id>]                              # items that have prob
 anvil validate | anvil doctor | anvil migrate
 anvil serve                                               # local board on http://127.0.0.1:4747
 ```
+
+`project release` marks every done item as released. With `--ref`, run inside one of the
+project's repositories, it first checks each item's evidence against that tag, branch or commit:
+an item whose pull request (`PR #12`, `#12`, a `/pull/12` link) or commit hash is in it is
+released; one whose PR or commit is not stays `done` for the next version; one with nothing git
+can check (no PR or commit, or another repository of the project) is released and marked
+"released by status" so you can look at it in the `--dry-run`. Commit messages never need item
+ids, so it works for public repositories too. PRs are found from GitHub's merge commits
+("Merge pull request #12 from …") and squash merges ("Title (#12)"); with rebase merges, cite the
+commit instead.
 
 `anvil serve` prints the board's address with a private token after `#token=`. Open that exact
 URL; keep it to yourself. The server only listens on 127.0.0.1 and refuses requests from other
