@@ -1,6 +1,6 @@
 {
   "name": "anvil-board",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The anvil web board: an Angular app built into ../ui-dist and served by `anvil serve`.",
   "private": true,
   "license": "MIT",
