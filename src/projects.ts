@@ -1,5 +1,5 @@
-// Project operations: create, scaffold from a template, promote an idea, release a version and
-// link a repository. Like store.ts, they validate before writing and return the touched paths.
+// Project operations: create, change (state, name…), scaffold from a template, promote an idea,
+// release a version and link a repository. Like store.ts, they validate before writing and return the touched paths.
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -11,6 +11,7 @@ import { serializeItem } from './item.ts';
 import { validateSchema, type Schema } from './json-schema.ts';
 import { normalizeProject, writeRegistry } from './registry.ts';
 import { absolute, createItem, getItem, getProject, moveItem, openSpace, today } from './store.ts';
+import { OPEN_STATUSES } from './rules.ts';
 import type { Change, Context, ItemEntry, ItemFields, Project } from './types.ts';
 import { itemProblems } from './validate.ts';
 
@@ -48,6 +49,51 @@ export function createProject(ctx: Context, { id, prefix, name, summary, state =
   registry.projects.push(normalizeProject({ id, prefix, name: name || id, summary, state, kind, release, repos, notion }));
   const path = writeRegistry(ctx, registry);
   return { id, paths: [path], message: `${id}: create project` };
+}
+
+/** Fields of a registered project that `project set` changes. Id, prefix and release stay. */
+export const PROJECT_SETTABLE = ['state', 'name', 'summary', 'kind', 'notion'] as const;
+export type ProjectChanges = Partial<Record<(typeof PROJECT_SETTABLE)[number], string>>;
+
+/** Fields a project must keep: an empty value would remove them. */
+const PROJECT_REQUIRED: ReadonlySet<string> = new Set(['state', 'name', 'kind']);
+const OPEN_LIST_LIMIT = 5;
+
+/**
+ * Changes fields of a registered project; an empty summary or notion removes it. A project is
+ * not done while it has open items, as an item is not done with open steps or tasks; it may be
+ * cancelled, and the hint lists what stays open.
+ */
+export function setProject(ctx: Context, id: string, changes: ProjectChanges): Change & { id: string } {
+  const keys = Object.keys(changes).filter((key) => changes[key as keyof ProjectChanges] !== undefined);
+  if (!keys.length) throw new AnvilError(`nothing to set; use one of ${PROJECT_SETTABLE.map((k) => `--${k}`).join(', ')}`);
+  const registry = structuredClone(ctx.space.registry);
+  const index = registry.projects.findIndex((p) => p.id === id);
+  const current = registry.projects[index];
+  if (!current) {
+    if (ctx.projects.has(id)) throw new AnvilError(`${id} is a fixed area, not a registered project: it has no fields to set`);
+    getProject(ctx, id);
+    throw new AnvilError(`unknown project "${id}"`);
+  }
+  for (const key of keys) {
+    if (PROJECT_REQUIRED.has(key) && !changes[key as keyof ProjectChanges]?.trim()) throw new AnvilError(`--${key} cannot be empty`);
+  }
+  const next = normalizeProject({ ...current, ...Object.fromEntries(keys.map((key) => [key, changes[key as keyof ProjectChanges]?.trim()])) });
+  if (JSON.stringify(next) === JSON.stringify(current)) throw new AnvilError(`${id} already has those values`);
+
+  const open = ctx.space.items
+    .filter((entry) => entry.project === id && !entry.archived && OPEN_STATUSES.includes(entry.item.fields.status))
+    .map((entry) => entry.item.fields.id);
+  const list = (ids: string[]) => `${ids.slice(0, OPEN_LIST_LIMIT).join(', ')}${ids.length > OPEN_LIST_LIMIT ? ` and ${ids.length - OPEN_LIST_LIMIT} more` : ''}`;
+  if (next.state === 'done' && current.state !== 'done' && open.length) {
+    throw new AnvilError(`${id} cannot be done with ${open.length} open item(s): ${list(open)}. Close or cancel them first, or move them to another project`);
+  }
+  registry.projects[index] = next;
+  const path = writeRegistry(ctx, registry);
+  const hint = next.state === 'cancelled' && current.state !== 'cancelled' && open.length
+    ? `${open.length} item(s) stay open in ${id}: ${list(open)}. Cancel them or move them to another project`
+    : null;
+  return { id, paths: [path], message: `${id}: set ${keys.join(', ')}`, hint };
 }
 
 /**

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, type TestContext } from 'node:test';
 import { parseItem } from '../src/item.ts';
-import { createProject, linkProject, loadTemplate, promoteIdea, releaseNotes, releaseProject, scaffoldProject } from '../src/projects.ts';
+import { createProject, linkProject, loadTemplate, promoteIdea, releaseNotes, releaseProject, scaffoldProject, setProject } from '../src/projects.ts';
 import { openSpace } from '../src/store.ts';
 import { validateSpace } from '../src/validate.ts';
 import { NOW, REGISTRY, fields, initRepo, itemText, makeSpace, item, type SpaceFiles } from './support.ts';
@@ -122,6 +122,42 @@ describe('releaseProject', () => {
 
   it('labels notes with the project id when it has no name', () => {
     assert.match(releaseNotes({ id: 'x' }, '1.0', '2026-01-01', []), /^## x 1.0/);
+  });
+});
+
+describe('setProject', () => {
+  it('changes the state and other fields, removes an empty summary, and keeps the file valid', (t) => {
+    const dir = makeSpace(t, {});
+    const result = setProject(openSpace(dir), 'beta', { state: 'paused', summary: 'On hold for now', name: 'Beta API' });
+    assert.deepEqual(result.paths, ['projects.json']);
+    assert.equal(result.message, 'beta: set state, summary, name');
+    const beta = registry(dir).projects.find((p) => p.id === 'beta');
+    assert.deepEqual(beta, { id: 'beta', prefix: 'BE', name: 'Beta API', summary: 'On hold for now', state: 'paused', kind: 'server', release: 'none' });
+    setProject(openSpace(dir), 'beta', { summary: '' });
+    assert.equal(registry(dir).projects.find((p) => p.id === 'beta')?.summary, undefined);
+    assertValidSpace(dir);
+  });
+
+  it('refuses what would break the registry or say nothing', (t) => {
+    const dir = makeSpace(t, {});
+    assert.throws(() => setProject(openSpace(dir), 'beta', {}), /nothing to set/);
+    assert.throws(() => setProject(openSpace(dir), 'beta', { state: 'active' }), /already has those values/);
+    assert.throws(() => setProject(openSpace(dir), 'beta', { state: 'sleeping' }), /state must be one of/);
+    assert.throws(() => setProject(openSpace(dir), 'beta', { name: ' ' }), /--name cannot be empty/);
+    assert.throws(() => setProject(openSpace(dir), 'inbox', { state: 'paused' }), /fixed area/);
+    assert.throws(() => setProject(openSpace(dir), 'nope', { state: 'paused' }), /unknown project "nope"/);
+  });
+
+  it('is not done with open items, and says what stays open when it is cancelled', (t) => {
+    const dir = makeSpace(t, {
+      ...item('beta', 'BE-1', { status: 'doing' }),
+      ...item('beta', 'BE-2', { status: 'done', evidence: 'x' }),
+    });
+    assert.throws(() => setProject(openSpace(dir), 'beta', { state: 'done' }), /beta cannot be done with 1 open item\(s\): BE-1/);
+    const cancelled = setProject(openSpace(dir), 'beta', { state: 'cancelled' });
+    assert.equal(cancelled.hint, '1 item(s) stay open in beta: BE-1. Cancel them or move them to another project');
+    const empty = makeSpace(t, { ...item('beta', 'BE-1', { status: 'done', evidence: 'x' }) });
+    assert.equal(setProject(openSpace(empty), 'beta', { state: 'done' }).hint, null);
   });
 });
 

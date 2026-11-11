@@ -16,7 +16,7 @@ import { serializeItem } from './item.ts';
 import { archiveItems, search, type ArchiveResult } from './maintenance.ts';
 import { migrate } from './migrate.ts';
 import { DEFAULT_PORT, startServer } from './server/server.ts';
-import { createProject, linkProject, promoteIdea, releaseProject, scaffoldProject, type ReleaseResult } from './projects.ts';
+import { PROJECT_SETTABLE, createProject, linkProject, promoteIdea, releaseProject, scaffoldProject, setProject, type ProjectChanges, type ReleaseResult } from './projects.ts';
 import { OPEN_STATUSES } from './rules.ts';
 import {
   CREATE_STATUSES, SETTABLE_FIELDS, addJournal, addStep, changeStep, createItem, getItem, getProject, listJournal,
@@ -203,6 +203,13 @@ const COMMANDS: Record<string, Command> = {
     options: { exclude: { type: 'string', multiple: true }, out: { type: 'string' }, 'dry-run': { type: 'boolean', default: false } },
     run: runRelease,
     print: (r) => `${r.dryRun ? 'Would release' : 'Released'} ${r.released.join(', ')} in ${r.version}${r.out ? `; notes written to ${r.out}` : `\n\n${r.notes}`}`,
+  }),
+  'project set': write({
+    usage: `project set <id> ${PROJECT_SETTABLE.map((f) => `[--${f} <value>]`).join(' ')}`,
+    summary: 'Change a project: its state (idea, planning, design, active, paused, done, cancelled), name, summary, kind or Notion link',
+    args: ['id'],
+    options: Object.fromEntries(PROJECT_SETTABLE.map((field) => [field, { type: 'string' }])) as ParseArgsOptionsConfig,
+    run: ({ ctx, values, args }) => setProject(ctx, arg(args, 'id'), Object.fromEntries(PROJECT_SETTABLE.map((field) => [field, str(values, field)])) as ProjectChanges),
   }),
   'project link': write({
     usage: 'project link [--id <id>] [--prefix <XX> --kind <kind> --release <versioned|none>] [--name] [--state]',

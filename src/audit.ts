@@ -129,7 +129,7 @@ export function audit(ctx: Context, now: Date, { project }: { project?: string }
         project: entry.project,
         id: fields.id,
         message: `${fields.id} is in doing, but its project ${entry.project} is ${home.state}`,
-        hint: `move ${fields.id} back to todo, or change the project's state in projects.json`,
+        hint: `anvil item status ${fields.id} todo, or anvil project set ${entry.project} --state active`,
       });
     }
   }
@@ -143,7 +143,7 @@ export function audit(ctx: Context, now: Date, { project }: { project?: string }
         check: 'active-without-work',
         project: target.id,
         message: `${target.id} is active but has no open items`,
-        hint: `add what comes next (anvil item create ${target.id} …), or change its state in projects.json`,
+        hint: `add what comes next (anvil item create ${target.id} …), or anvil project set ${target.id} --state paused`,
       });
     }
   }
