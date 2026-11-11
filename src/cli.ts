@@ -268,7 +268,7 @@ const COMMANDS: Record<string, Command> = {
   }),
   'item set': write({
     usage: `item set <id> ${SETTABLE_FIELDS.map((f) => `[--${f} <value>]`).join(' ')}`,
-    summary: 'Change fields; an empty value removes the field, lists are comma-separated',
+    summary: 'Change fields; an empty value removes the field, lists are separated by commas or spaces',
     args: ['id'],
     options: Object.fromEntries(SETTABLE_FIELDS.map((field) => [field, { type: 'string' }])) as ParseArgsOptionsConfig,
     run: ({ ctx, values, args }) => setFields(ctx, arg(args, 'id'),

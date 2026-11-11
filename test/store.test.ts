@@ -125,6 +125,14 @@ describe('setStatus', () => {
 });
 
 describe('setFields', () => {
+  it('splits lists on spaces as well as commas, as PowerShell passes a,b as "a b"', (t) => {
+    const dir = makeSpace(t, item('alpha', 'AL-1'));
+    setFields(openSpace(dir), 'AL-1', { labels: 'ui forms,  api ,ui' });
+    assert.deepEqual(fieldsOf(dir, 'alpha', 'AL-1').labels, ['ui', 'forms', 'api']);
+    const created = createItem(openSpace(dir), { project: 'alpha', kind: 'task', title: 'X', labels: 'docs ops' }, NOW);
+    assert.deepEqual(fieldsOf(dir, 'alpha', created.id).labels, ['docs', 'ops']);
+  });
+
   it('sets, replaces and removes fields', (t) => {
     const dir = makeSpace(t, { ...item('alpha', 'AL-1', { priority: 'low', labels: ['a'] }), ...item('beta', 'BE-1') });
     const result = setFields(openSpace(dir), 'AL-1', { title: 'Renamed: now', priority: '', labels: 'x, y', related: 'BE-1' });
