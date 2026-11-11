@@ -143,7 +143,7 @@ export function setDescription(ctx: Context, id: string, description: string): C
   return { id: fields.id, paths: [entry.file], message: `${fields.id}: ${description.trim() ? 'edit' : 'remove'} description` };
 }
 
-/** Changes header fields. An empty value removes the field; list fields are comma-separated. */
+/** Changes header fields. An empty value removes the field; list fields are comma- or space-separated. */
 export function setFields(ctx: Context, id: string, changes: Partial<Record<string, string>>): Change & { id: string } {
   const entry = getEditable(ctx, id);
   const { fields } = entry.item;
@@ -360,8 +360,13 @@ function composeBody(body: string | undefined, steps: string[]): string {
   return parts.length ? `${parts.join('\n\n')}\n` : '';
 }
 
+/**
+ * A list given as one argument: separated by commas, spaces or both, without repeats. No list
+ * value can hold a space, and PowerShell turns an unquoted `a,b` into `a b` when npm's `anvil.ps1`
+ * shim passes it on.
+ */
 function splitList(value: string): string[] {
-  return value.split(',').map((part) => part.trim()).filter(Boolean);
+  return [...new Set(value.split(/[\s,]+/).filter(Boolean))];
 }
 
 function assertOneLine(text: string, what: string): void {
