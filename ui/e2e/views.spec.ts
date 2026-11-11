@@ -104,7 +104,8 @@ test('moves an inbox item to a project', async ({ page }) => {
   await open(page, '/inbox');
   await page.getByRole('button', { name: /IN-1/ }).click();
   await page.getByRole('button', { name: 'Move to…' }).click();
-  await page.getByText('Bakery site', { exact: false }).last().click();
+  // The option itself: the button below also reads "Move to Bakery site" once it is picked.
+  await page.getByRole('radio', { name: /Bakery site/ }).check();
   await page.getByRole('button', { name: 'Move to Bakery site' }).click();
   await expect(page.getByRole('heading', { name: 'Inbox clear' })).toBeVisible();
   expect(file('projects/bakery-site/items/BS-6.md')).toContain('aliases: [IN-1]');
