@@ -1,3 +1,4 @@
+import { Empty } from '../../shared/empty/empty';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Api } from '../../core/api';
@@ -27,7 +28,7 @@ export function safeLink(url: string | undefined): string | null {
 @Component({
   selector: 'anv-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [Empty, RouterLink],
   templateUrl: './home.html',
   styleUrl: './home.scss',
 })

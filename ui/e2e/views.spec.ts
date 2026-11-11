@@ -106,7 +106,7 @@ test('moves an inbox item to a project', async ({ page }) => {
   await page.getByRole('button', { name: 'Move to…' }).click();
   await page.getByText('Bakery site', { exact: false }).last().click();
   await page.getByRole('button', { name: 'Move to Bakery site' }).click();
-  await expect(page.getByText('Nothing waiting here.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Inbox clear' })).toBeVisible();
   expect(file('projects/bakery-site/items/BS-6.md')).toContain('aliases: [IN-1]');
 });
 
@@ -133,7 +133,7 @@ test('lets an inbox item go with a reason', async ({ page }) => {
   const dialog = page.getByRole('dialog', { name: /Cancel IN-3/ });
   await dialog.getByLabel('Reason').fill('Not worth it');
   await dialog.getByRole('button', { name: /Cancel idea/ }).click();
-  await expect(page.getByText('Nothing waiting here.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Inbox clear' })).toBeVisible();
   expect(file('projects/inbox/items/IN-3.md')).toContain('reason: Not worth it');
 });
 

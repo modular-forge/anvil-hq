@@ -66,7 +66,81 @@
 }
 
 .backup.stale {
-  border-color: color-mix(in srgb, var(--st-blocked) 60%, var(--line2));
+  border-color: color-mix(in srgb, var(--hot1) 55%, var(--line2));
+  background: color-mix(in srgb, var(--hot1) 10%, var(--s2));
+  color: var(--tx);
+  cursor: pointer;
+}
+
+// The count falls into place like a drop of molten metal whenever it changes.
+.drop {
+  display: inline-block;
+  animation: drop 0.32s var(--ease-spring);
+}
+
+@keyframes drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(1.2);
+  }
+
+  70% {
+    opacity: 1;
+    transform: translateY(1px) scaleY(0.92);
+  }
+
+  100% {
+    transform: none;
+  }
+}
+
+.backup-wrap {
+  position: relative;
+}
+
+.backup-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 15;
+  display: flex;
+  gap: 12px;
+  width: min(360px, calc(100vw - 32px));
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--hot1) 45%, var(--line2));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--hot1) 6%, var(--s1));
+  box-shadow: 0 12px 30px rgb(0 0 0 / 35%);
+  color: var(--tx2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.backup-panel anv-icon {
+  color: var(--hot2);
+}
+
+.backup-panel p {
+  margin: 0 0 6px;
+}
+
+.panel-title {
+  color: var(--tx);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.backup-panel code {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--tx);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.note {
+  color: var(--tx3);
+  font-size: 12px;
 }
 
 .new {

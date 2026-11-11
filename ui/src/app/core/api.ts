@@ -36,6 +36,10 @@ export interface StatusChange {
   evidence?: string;
 }
 
+/** Fields the server lets the board set (SETTABLE_FIELDS in src/store.ts). */
+export type FieldChanges = Partial<Record<'title' | 'kind' | 'priority' | 'parent' | 'supersededBy', string | null>> &
+  Partial<Record<'related' | 'labels' | 'links', string[] | null>>;
+
 export type StepAction = 'check' | 'uncheck' | 'skip';
 
 /** The board's calls to the local server. */
@@ -108,6 +112,11 @@ export class Api {
 
   addStep(item: Pick<ItemSummary, 'id' | 'etag'>, text: string): Promise<WriteResult> {
     return this.#write(this.#http.post<WriteResult>(`${itemUrl(item.id)}/steps`, { text }, ifMatch(item.etag)));
+  }
+
+  /** Changes header fields: a list for labels, related and links; null or "" removes the field. */
+  setFields(item: Pick<ItemSummary, 'id' | 'etag'>, changes: FieldChanges): Promise<WriteResult> {
+    return this.#write(this.#http.patch<WriteResult>(itemUrl(item.id), changes, ifMatch(item.etag)));
   }
 
   move(item: Pick<ItemSummary, 'id' | 'etag'>, project: string): Promise<WriteResult> {

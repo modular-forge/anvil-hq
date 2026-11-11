@@ -28,7 +28,7 @@ svg {
 }
 
 .handle {
-  fill: #8b5a2b;
+  fill: var(--wood);
 }
 
 .hammer {
@@ -41,7 +41,7 @@ svg {
 
 .spark {
   opacity: 0;
-  stroke: #ffc266;
+  stroke: var(--spark);
   stroke-width: 7;
   stroke-linecap: round;
   transform-box: view-box;

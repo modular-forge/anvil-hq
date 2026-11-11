@@ -56,5 +56,9 @@ test('shows changes made outside the board without a reload', async ({ page }) =
 
   anvil('item', 'status', 'HL-1', 'doing');
   await expect(doing).toBeVisible();
-  await expect(page.getByRole('status').filter({ hasText: 'No remote' })).toBeVisible();
+  // No remote means the only copy is here: the pill opens the details.
+  const backup = page.getByRole('button', { name: /No remote/ });
+  await expect(backup).toBeVisible();
+  await backup.click();
+  await expect(page.getByRole('region', { name: 'Backup' })).toContainText('Add a private remote');
 });

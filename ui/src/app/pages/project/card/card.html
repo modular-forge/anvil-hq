@@ -5,6 +5,11 @@
   [class.hot]="it.fields.status === 'doing'"
   [class.blocked]="it.fields.status === 'blocked'"
   [class.cancelled]="it.fields.status === 'cancelled'"
+  [class.land]="landing()"
+  [class.temper]="landing() === 'done'"
+  [class.rust]="landing() === 'blocked'"
+  [class.warm]="landing() === 'doing'"
+  [class.lifted]="lifted()"
   [attr.data-id]="it.id"
   [attr.aria-pressed]="selected()"
   [attr.aria-keyshortcuts]="movable() ? 'Shift+ArrowLeft Shift+ArrowRight' : null"
@@ -44,6 +49,9 @@
         <span>{{ label }}</span>
       }
     </span>
+  }
+  @if (landing()) {
+    <span class="sparks" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
   }
   @if (extra(); as extra) {
     <span class="extra" [style.color]="extra.tone ? 'var(--st-' + extra.tone + ')' : null">{{ extra.text }}</span>

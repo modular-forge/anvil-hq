@@ -1,0 +1,161 @@
+@if (item(); as item) {
+  <div class="page">
+    <article class="main">
+      <div class="head">
+        <p class="kicker">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path [attr.d]="kindIcons[item.fields.kind] ?? kindIcons['task']" />
+          </svg>
+          <span class="mono">{{ item.id }}</span> · {{ item.fields.kind }} ·
+          <a [routerLink]="['/projects', item.project]" [queryParams]="{ item: item.id }">back to the board</a>
+        </p>
+        @if (editingTitle()) {
+          <form (submit)="$event.preventDefault(); saveTitle(item, title.value)">
+            <label class="sr-only" for="item-title">Title</label>
+            <input #title id="item-title" class="display title-input" [value]="item.fields.title" (blur)="saveTitle(item, title.value)" (keydown.escape)="cancelTitle($event)" />
+          </form>
+        } @else {
+          <h1 class="display">
+            @if (board.readOnly()) {
+              {{ item.fields.title }}
+            } @else {
+              <button id="title-button" type="button" class="title-button" aria-keyshortcuts="E" aria-describedby="title-hint" (click)="editTitle()">{{ item.fields.title }}</button>
+            }
+          </h1>
+          @if (!board.readOnly()) {
+            <span id="title-hint" class="sr-only">Press to edit the title</span>
+          }
+        }
+      </div>
+
+      <anv-item-body class="body" [item]="item" [hideHeading]="true" />
+      <anv-item-steps [item]="item" />
+      <anv-item-tasks [item]="item" [adding]="true" />
+      <anv-item-history />
+    </article>
+
+    <aside class="side" aria-label="Properties">
+      <div class="props">
+        <label class="sr-only" for="item-status">Status</label>
+        <span class="status" [class.hot]="item.fields.status === 'doing'" [style.color]="'var(--st-' + item.fields.status + ')'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path [attr.d]="statuses[item.fields.status]?.icon" [attr.stroke-dasharray]="statuses[item.fields.status]?.dash || null" />
+          </svg>
+          <select #status id="item-status" [disabled]="board.readOnly()" (change)="changeStatus(item, status)">
+            @for (option of statusOptions(); track option) {
+              <option [value]="option" [selected]="option === item.fields.status" [disabled]="option === 'released'">{{ statusName(option) }}</option>
+            }
+          </select>
+        </span>
+
+        <dl>
+          <dt><label for="item-priority">Priority</label></dt>
+          <dd>
+            <select #priority id="item-priority" class="field" [disabled]="board.readOnly()" (change)="setPriority(item, priority)">
+              @for (option of priorities; track option.value) {
+                <option [value]="option.value" [selected]="option.value === (item.fields.priority ?? '')">{{ option.name }}</option>
+              }
+            </select>
+          </dd>
+          <dt><label for="item-kind">Kind</label></dt>
+          <dd>
+            <select #kind id="item-kind" class="field" [disabled]="board.readOnly()" (change)="setKind(item, kind)">
+              @for (option of kinds; track option) {
+                <option [value]="option" [selected]="option === item.fields.kind">{{ option }}</option>
+              }
+            </select>
+          </dd>
+          <dt><label for="item-labels">Labels</label></dt>
+          <dd>
+            <input
+              #labels
+              id="item-labels"
+              class="field"
+              placeholder="none"
+              [value]="item.fields.labels?.join(', ') ?? ''"
+              [readOnly]="board.readOnly()"
+              (change)="setLabels(item, labels)"
+              (keydown.enter)="labels.blur()"
+            />
+          </dd>
+          @if (item.fields.parent; as parent) {
+            <dt>Parent</dt>
+            <dd><a [routerLink]="['/items', parent]"><span class="mono">{{ parent }}</span> {{ relatedTitle(parent) }}</a></dd>
+          }
+          @if (item.fields.related?.length) {
+            <dt>Related</dt>
+            <dd class="list">
+              @for (id of item.fields.related; track id) {
+                <a [routerLink]="['/items', id]"><span class="mono">{{ id }}</span> {{ relatedTitle(id) }}</a>
+              }
+            </dd>
+          }
+          @if (item.fields.links?.length) {
+            <dt>Links</dt>
+            <dd class="list wrap">
+              @for (link of item.fields.links; track link) {
+                @if (isWebLink(link)) {
+                  <a [href]="link" target="_blank" rel="noopener noreferrer">{{ link }} <span aria-hidden="true">↗</span><span class="sr-only">, opens in a new tab</span></a>
+                } @else {
+                  <span>{{ link }}</span>
+                }
+              }
+            </dd>
+          }
+          @if (item.fields.reason) {
+            <dt>Reason</dt>
+            <dd>{{ item.fields.reason }}</dd>
+          }
+          @if (item.fields.evidence) {
+            <dt>Evidence</dt>
+            <dd class="wrap">{{ item.fields.evidence }}</dd>
+          }
+          @if (item.fields.release) {
+            <dt>Release</dt>
+            <dd class="mono">{{ item.fields.release }}</dd>
+          }
+          <dt>Since</dt>
+          <dd class="mono small">{{ item.fields.since }}</dd>
+          <dt>Created</dt>
+          <dd class="mono small">{{ item.fields.created }}</dd>
+          <dt>File</dt>
+          <dd class="mono tiny wrap">{{ item.file }}</dd>
+        </dl>
+      </div>
+
+      @if (blockers(); as blockers) {
+        <div class="note" role="note">
+          <p class="note-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11V8a6 6 0 0 1 12 0v3M5 11h14v9H5z" /></svg>
+            Not ready to close
+          </p>
+          <p>
+            @if (blockers.children.length) {
+              A {{ item.fields.kind }} is done only when all its tasks are. Still open:
+              @for (child of blockers.children; track child.id; let last = $last) {
+                <a class="mono" [routerLink]="['/items', child.id]">{{ child.id }}</a>{{ last ? '.' : ', ' }}
+              }
+            }
+            @if (blockers.steps.length) {
+              {{ blockers.steps.length }} {{ blockers.steps.length === 1 ? 'step is' : 'steps are' }} still unchecked.
+            }
+          </p>
+        </div>
+      }
+
+      @if (!board.readOnly()) {
+        <div class="actions">
+          <button type="button" (click)="board.moveToProject(item)">Move to another project…</button>
+          @if (item.fields.status !== 'cancelled') {
+            <button type="button" class="danger" (click)="board.move(item, 'cancelled')">Cancel {{ item.fields.kind }}…</button>
+          }
+        </div>
+      }
+    </aside>
+  </div>
+} @else if (board.missing() === id()) {
+  <h1 class="display">Item not found</h1>
+  <p class="lost">There is no item "{{ id() }}" in this data space, or the server is not answering.</p>
+} @else {
+  <anv-skeleton [label]="'Loading ' + id() + '…'" />
+}

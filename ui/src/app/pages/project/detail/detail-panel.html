@@ -4,12 +4,15 @@
       <path [attr.d]="kindIcons[item.fields.kind] ?? kindIcons['task']" />
     </svg>
     <span class="mono">{{ item.id }}</span><span>· {{ item.fields.kind }}</span>
+    <a class="icon" [routerLink]="['/items', item.id]" aria-label="Open full page" title="Open full page">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>
+    </a>
     <button type="button" class="icon" aria-label="Close detail" (click)="closed.emit()">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
     </button>
   </div>
 
-  <div class="title-block">
+  <div class="title-block" [attr.data-item]="item.id">
     <h2 id="detail-title" class="display">{{ item.fields.title }}</h2>
     <div class="status-row">
       <label class="sr-only" for="detail-status">Status</label>
@@ -60,101 +63,10 @@
     <dd class="mono small wrap">{{ item.file }}</dd>
   </dl>
 
-  @if (item.steps.length || !closedItem()) {
-    <section aria-labelledby="steps-title" class="steps">
-      <div class="section-head">
-        <h3 id="steps-title">Steps</h3>
-        @if (item.steps.length) {
-          <span class="mono count">{{ item.progress.done + item.progress.skipped }} of {{ item.progress.total }}</span>
-          <span class="segs" aria-hidden="true">
-            @for (seg of segments(); track $index) {
-              <span [class]="seg"></span>
-            }
-          </span>
-        }
-      </div>
-      <ul>
-        @for (step of item.steps; track step.index) {
-          <li class="step-row">
-            <button
-              type="button"
-              class="step"
-              role="checkbox"
-              [attr.aria-checked]="step.checked"
-              [disabled]="board.readOnly()"
-              [class.skipped]="step.skipped"
-              (click)="toggle(item, step)"
-            >
-              <span class="box" aria-hidden="true">
-                @if (step.checked && !step.skipped) {
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-                }
-              </span>
-              <span class="text">{{ step.text }}</span>
-            </button>
-            @if (!step.checked && !board.readOnly()) {
-              <button type="button" class="skip" (click)="board.skipStep(item, step)" [attr.aria-label]="'Skip step ' + step.index">Skip</button>
-            }
-          </li>
-        }
-      </ul>
-      @if (!board.readOnly() && !closedItem()) {
-        <form class="add" (submit)="$event.preventDefault(); addStep(item)">
-          <label class="sr-only" for="new-step">New step</label>
-          <input id="new-step" placeholder="Add a step" [ngModel]="newStep()" (ngModelChange)="newStep.set($event)" name="step" />
-          <button type="submit" [disabled]="!newStep().trim()">Add</button>
-        </form>
-      }
-    </section>
-  }
-
-  @if (blocks().length) {
-    <section aria-labelledby="desc-title" class="description">
-      <h3 id="desc-title">Description</h3>
-      @for (block of blocks(); track $index) {
-        @if (block.type === 'p') {
-          <p>
-            @for (part of block.parts; track $index) {@if ('id' in part) {<button type="button" class="mention mono" (click)="board.onSelect(part.id)">{{ part.id }}</button>} @else {{{ part.text }}}}
-          </p>
-        } @else {
-          <ul>
-            @for (entry of block.items; track $index) {
-              <li>
-                @for (part of entry; track $index) {@if ('id' in part) {<button type="button" class="mention mono" (click)="board.onSelect(part.id)">{{ part.id }}</button>} @else {{{ part.text }}}}
-              </li>
-            }
-          </ul>
-        }
-      }
-    </section>
-  }
-
-  @if (item.children.length) {
-    <section aria-labelledby="tasks-title" class="tasks">
-      <h3 id="tasks-title">Tasks</h3>
-      <ul>
-        @for (child of item.children; track child.id) {
-          <li>
-            <button type="button" class="task" (click)="board.onSelect(child.id)">
-              <span class="dot" [style.background]="'var(--st-' + child.fields.status + ')'" aria-hidden="true"></span>
-              <span class="mono">{{ child.id }}</span>
-              <span class="task-title">{{ child.fields.title }}</span>
-              <span class="sr-only">, {{ statusName(child.fields.status) }}</span>
-            </button>
-          </li>
-        }
-      </ul>
-    </section>
-  }
-
-  <section aria-labelledby="history-title" class="history">
-    <h3 id="history-title">History</h3>
-    @for (entry of history(); track entry.hash) {
-      <p class="entry"><span class="mono hash">{{ entry.hash }}</span><span class="subject">{{ entry.subject }}</span><span class="when">{{ entry.when }}</span></p>
-    } @empty {
-      <p class="empty">No commits yet.</p>
-    }
-  </section>
+  <anv-item-steps [item]="item" />
+  <anv-item-body [item]="item" />
+  <anv-item-tasks [item]="item" />
+  <anv-item-history />
 
   @if (!board.readOnly()) {
     <div class="actions">
@@ -165,5 +77,5 @@
     </div>
   }
 } @else {
-  <p class="loading">Loading…</p>
+  <anv-skeleton />
 }

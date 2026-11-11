@@ -24,15 +24,6 @@ main:focus {
   outline: none;
 }
 
-.notice {
-  margin: 0 0 16px;
-  padding: 10px 14px;
-  border: 1px solid color-mix(in srgb, var(--st-blocked) 50%, var(--line2));
-  border-radius: var(--radius-m);
-  background: var(--s1);
-  color: var(--tx2);
-}
-
 .skip {
   position: absolute;
   top: 8px;

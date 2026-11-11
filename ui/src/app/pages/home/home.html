@@ -108,6 +108,14 @@
   </section>
 }
 
+@if (store.state() === 'ready' && !projects().length) {
+  <anv-empty heading="The forge is cold" art="tap">
+    No projects yet. Create one from the terminal with
+    <span class="mono">anvil project create &lt;id&gt; --prefix &lt;XX&gt; --kind &lt;kind&gt; --release none</span>,
+    or try the made-up demo data with <span class="mono">anvil init &lt;path&gt; --demo</span>.
+  </anv-empty>
+}
+
 @if (finishedCounts().done || finishedCounts().cancelled) {
   <button type="button" class="toggle" [attr.aria-pressed]="showFinished()" (click)="showFinished.set(!showFinished())">
     Show Done · {{ finishedCounts().done }} and Cancelled · {{ finishedCounts().cancelled }}

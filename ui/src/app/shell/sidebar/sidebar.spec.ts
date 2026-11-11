@@ -76,4 +76,16 @@ describe('Sidebar', () => {
     expect(light?.getAttribute('aria-pressed')).toBe('true');
     expect(dark?.getAttribute('aria-pressed')).toBe('false');
   });
+
+  it('folds the menu behind a button that says whether it is open', async () => {
+    const fixture = await render();
+    const el = fixture.nativeElement as HTMLElement;
+    const toggle = el.querySelector<HTMLButtonElement>('.menu-toggle');
+    expect(toggle?.getAttribute('aria-controls')).toBe('sidebar-menu');
+    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+    toggle?.click();
+    await fixture.whenStable();
+    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
+    expect(el.querySelector('#sidebar-menu')?.classList).toContain('open');
+  });
 });

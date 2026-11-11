@@ -19,6 +19,10 @@ export class Card {
   readonly tasks = input<TaskCount | null>(null);
   readonly selected = input(false);
   readonly movable = input(true);
+  /** The status this card just moved to: it lands with that status's effect. */
+  readonly landing = input<string | null>(null);
+  /** It is being dragged: the card left behind dims. */
+  readonly lifted = input(false);
 
   readonly opened = output();
   /** Shift ← (-1) or Shift → (+1). */
@@ -42,6 +46,11 @@ export class Card {
   protected dragstart(event: DragEvent): void {
     event.dataTransfer?.setData('text/plain', this.item().id);
     if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+    // The browser pictures the dragged card as it looks right now: tilted, held in tongs. The
+    // tilt comes off on the next frame, leaving the dimmed card behind.
+    const card = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+    card?.classList.add('tongs');
+    requestAnimationFrame(() => card?.classList.remove('tongs'));
     this.dragStarted.emit();
   }
 }

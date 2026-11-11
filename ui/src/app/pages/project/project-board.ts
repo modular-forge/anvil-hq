@@ -1,11 +1,22 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
-import { Api, WriteError, type StatusChange } from '../../core/api';
+import { Api, WriteError, type FieldChanges, type StatusChange } from '../../core/api';
 import { itemDiff } from '../../core/item-text';
+import { Motion } from '../../core/motion';
 import type { HistoryEntry, ItemDetail, ItemSummary, Step, WriteResult } from '../../core/models';
 import { SpaceStore } from '../../core/space-store';
 import { CLOSED, COLUMNS, MOVABLE, adjacentStatus, closeBlockers, isContainer, statusName } from '../../core/statuses';
+import { Celebrations } from '../../shared/celebration/celebration';
 import { Dialogs, type DialogItem } from '../../shared/dialogs/dialogs';
 import { Notices } from '../../shared/notices/notices';
+
+/** How long a moved card keeps its landing classes: the longest landing effect, and a little more. */
+export const LANDING_MS = 1600;
+
+/** The card that just moved, and where to: it lands with that status's effect. */
+export interface Landing {
+  id: string;
+  status: string;
+}
 
 export interface Column {
   status: string;
@@ -19,6 +30,33 @@ export function sortCards(items: readonly ItemSummary[]): ItemSummary[] {
   const rank = (item: ItemSummary) => PRIORITY[item.fields.priority ?? ''] ?? 1;
   const number = (item: ItemSummary) => Number(item.id.split('-')[1]);
   return [...items].sort((a, b) => rank(a) - rank(b) || number(a) - number(b));
+}
+
+/** What the board shows: null means any. Priority "none" matches items without one. */
+export interface Filters {
+  kind: string | null;
+  label: string | null;
+  priority: string | null;
+}
+
+export const NO_FILTERS: Filters = { kind: null, label: null, priority: null };
+
+export function matchesFilters(item: ItemSummary, filters: Filters): boolean {
+  const { kind, priority } = item.fields;
+  if (filters.kind && kind !== filters.kind) return false;
+  if (filters.label && !(item.fields.labels ?? []).includes(filters.label)) return false;
+  if (filters.priority && (priority ?? 'none') !== filters.priority) return false;
+  return true;
+}
+
+/** Kinds and labels the live items use, sorted: the choices of the board's filters. */
+export function filterChoices(items: readonly ItemSummary[]): { kinds: string[]; labels: string[] } {
+  const live = items.filter((item) => !item.archived);
+  const sorted = (values: Iterable<string>) => [...new Set(values)].sort((a, b) => a.localeCompare(b));
+  return {
+    kinds: sorted(live.map((item) => item.fields.kind)),
+    labels: sorted(live.flatMap((item) => item.fields.labels ?? [])),
+  };
 }
 
 /** The board's columns for `items`; cancelled ones only with `showCancelled`. Archived left out. */
@@ -38,15 +76,22 @@ export class ProjectBoard {
   readonly #store = inject(SpaceStore);
   readonly #dialogs = inject(Dialogs);
   readonly #notices = inject(Notices);
+  readonly #motion = inject(Motion);
+  readonly #celebrations = inject(Celebrations);
 
   readonly projectId = signal('');
   readonly selectedId = signal<string | null>(null);
   readonly showCancelled = signal(false);
+  readonly filters = signal<Filters>(NO_FILTERS);
 
   readonly #items = signal<ItemSummary[]>([]);
   readonly #loaded = signal(false);
   readonly #detail = signal<ItemDetail | null>(null);
   readonly #history = signal<HistoryEntry[]>([]);
+  readonly #missing = signal<string | null>(null);
+  readonly #landed = signal<Landing | null>(null);
+  readonly #gliding = signal<string | null>(null);
+  #landTimer: ReturnType<typeof setTimeout> | undefined;
   /** Changes run one after another: each waits for the previous one's dialog, write and reload. */
   #queue: Promise<unknown> = Promise.resolve();
 
@@ -54,10 +99,20 @@ export class ProjectBoard {
   readonly loaded = this.#loaded.asReadonly();
   readonly detail = this.#detail.asReadonly();
   readonly history = this.#history.asReadonly();
+  /** The selected id, when the server could not give that item (unknown, or the server is down). */
+  readonly missing = this.#missing.asReadonly();
+  readonly landed = this.#landed.asReadonly();
+  /** The card gliding to its new column, during the move's view transition. */
+  readonly gliding = this.#gliding.asReadonly();
   /** Nothing can change while the data space does not validate. */
   readonly readOnly = computed(() => this.#store.space()?.readOnly ?? true);
 
-  readonly columns = computed(() => buildColumns(this.#items(), this.showCancelled()));
+  readonly filtering = computed(() => Object.values(this.filters()).some((value) => value !== null));
+  readonly choices = computed(() => filterChoices(this.#items()));
+  readonly columns = computed(() => {
+    const filters = this.filters();
+    return buildColumns(this.#items().filter((item) => matchesFilters(item, filters)), this.showCancelled());
+  });
   readonly cancelledCount = computed(() => this.#items().filter((i) => !i.archived && i.fields.status === 'cancelled').length);
   /** Items by id and former id. */
   readonly byId = computed(() => {
@@ -70,7 +125,7 @@ export class ProjectBoard {
   });
 
   /** Called after a move that a dialog sent elsewhere: open that item. */
-  onSelect: (id: string | null) => void = (id) => this.selectedId.set(id);
+  onSelect: (id: string | null) => unknown = (id) => this.selectedId.set(id);
 
   constructor() {
     // Reload whenever the project changes or anything changes on disk (the space's stamp).
@@ -110,9 +165,13 @@ export class ProjectBoard {
       if (id === this.selectedId()) {
         this.#detail.set(detail);
         this.#history.set(history);
+        this.#missing.set(null);
       }
     } catch {
-      if (id === this.selectedId()) this.#detail.set(null);
+      if (id === this.selectedId()) {
+        this.#detail.set(null);
+        this.#missing.set(id);
+      }
     }
   }
 
@@ -160,9 +219,10 @@ export class ProjectBoard {
       if (answer.value) change.evidence = answer.value;
     }
 
-    const result = await this.#write(item.id, () => this.#api.setStatus(current, change));
+    const result = await this.#write(item.id, () => this.#api.setStatus(current, change), { status: target });
     if (!result) return false;
     this.#notices.say(`${item.id} moved to ${statusName(target)}`);
+    if (target === 'done' && isContainer(item.fields.kind)) this.#celebrations.play({ kind: 'forge', label: `${item.id} forged` });
     if (result.hint && item.fields.parent && CLOSED.includes(target)) await this.#offerParent(item.fields.parent);
     return true;
   }
@@ -219,6 +279,33 @@ export class ProjectBoard {
     });
   }
 
+  /** Changes header fields of the item (title, priority, labels, kind). Returns whether it saved. */
+  setFields(detail: ItemDetail, changes: FieldChanges, said: string): Promise<boolean> {
+    if (this.readOnly()) return Promise.resolve(false);
+    return this.#serial(async () => {
+      const fresh = this.#freshDetail(detail);
+      const result = await this.#write(fresh.id, () => this.#api.setFields(fresh, changes));
+      if (result) this.#notices.say(said);
+      return !!result;
+    });
+  }
+
+  /** Creates a task under a feature or bug, in its backlog. */
+  addTask(parent: ItemDetail, title: string): Promise<boolean> {
+    if (this.readOnly() || !title.trim()) return Promise.resolve(false);
+    return this.#serial(async () => {
+      try {
+        const result = await this.#api.createItem({ project: parent.project, kind: 'task', title: title.trim(), parent: parent.id });
+        this.#notices.say(`Created ${result.id} in ${parent.id}`);
+        await Promise.all([this.load(), this.loadDetail(this.selectedId())]);
+        return true;
+      } catch (error) {
+        this.#notices.fail(error instanceof WriteError ? error.message : 'The task could not be created.');
+        return false;
+      }
+    });
+  }
+
   /** Moves the item, and its tasks, to another project chosen in a dialog. */
   moveToProject(detail: ItemDetail): Promise<void> {
     return this.#serial(() => this.#moveToProject(this.#freshDetail(detail)));
@@ -243,21 +330,37 @@ export class ProjectBoard {
     const answer = await this.#dialogs.open({ kind: 'close-parent', parent: dialogItem(parent) });
     if (!answer) return;
     // The click is the confirmation: the server saves the board's evidence.
-    if (await this.#write(parent.id, () => this.#api.setStatus(parent, { status: 'done' }))) {
+    if (await this.#write(parent.id, () => this.#api.setStatus(parent, { status: 'done' }), { status: 'done' })) {
       this.#notices.say(`${parent.id} moved to Done`);
+      this.#celebrations.play({ kind: 'forge', label: `${parent.id} forged` });
     }
   }
 
-  /** Runs a write, then reloads. A conflict opens the "changed on disk" dialog; other refusals show the server's message. */
-  async #write(id: string, run: () => Promise<WriteResult>): Promise<WriteResult | null> {
+  /**
+   * Runs a write, then reloads. A conflict opens the "changed on disk" dialog; other refusals
+   * show the server's message. With `landing`, the changed card glides to its new column and
+   * lands there.
+   */
+  async #write(id: string, run: () => Promise<WriteResult>, landing?: { status: string }): Promise<WriteResult | null> {
     try {
       const result = await run();
       // The server's copy carries the new ETag: use it before the reload, so the next change
       // never goes out with the old one.
       const changed = result.item;
       if (changed) {
-        this.#items.update((items) => items.map((i) => (i.id === changed.id ? changed : i)));
-        if (this.#detail()?.id === changed.id) this.#detail.set(changed);
+        const apply = () => {
+          if (landing) this.#land({ id: changed.id, status: landing.status });
+          this.#items.update((items) => items.map((i) => (i.id === changed.id ? changed : i)));
+          if (this.#detail()?.id === changed.id) this.#detail.set(changed);
+        };
+        if (landing) {
+          // Named before the browser captures the old state, so it knows where the card comes from.
+          this.#gliding.set(changed.id);
+          await this.#motion.transition(apply);
+          setTimeout(() => this.#gliding.update((id) => (id === changed.id ? null : id)), LANDING_MS);
+        } else {
+          apply();
+        }
       }
       await Promise.all([this.load(), this.loadDetail(this.selectedId())]);
       return result;
@@ -295,6 +398,12 @@ export class ProjectBoard {
   #freshDetail(detail: ItemDetail): ItemDetail {
     const current = this.#detail();
     return current?.id === detail.id ? current : detail;
+  }
+
+  #land(landing: Landing): void {
+    clearTimeout(this.#landTimer);
+    this.#landed.set(landing);
+    this.#landTimer = setTimeout(() => this.#landed.set(null), LANDING_MS);
   }
 
   #refuse(message: string): false {

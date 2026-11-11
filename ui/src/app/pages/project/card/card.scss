@@ -3,6 +3,7 @@
 }
 
 .card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 9px;
@@ -122,6 +123,141 @@
   line-height: 1.4;
 }
 
+// Storyboard. Lift: the card is held in tongs while dragged; the one left behind dims.
+.tongs {
+  transform: rotate(-5deg) scale(1.04);
+  box-shadow: 0 14px 26px rgb(0 0 0 / 50%);
+}
+
+.lifted {
+  opacity: 0.45;
+}
+
+// Hammer drop: the card lands with a squash and a few sparks.
+.land {
+  animation: land var(--land-duration) var(--ease-spring);
+}
+
+// Heat: moving to doing, the edge warms up before it starts breathing.
+.land.warm {
+  animation:
+    land var(--land-duration) var(--ease-spring),
+    warm-up var(--effect-duration) ease-out;
+}
+
+// Rust: moving to blocked, the colour drains and the rust tint comes in.
+.land.rust {
+  animation:
+    land var(--land-duration) var(--ease-spring),
+    rust var(--effect-duration) ease-out;
+}
+
+// Temper: moving to done, a metallic sheen crosses the card once.
+.land.temper {
+  background-image: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--tx) 22%, transparent) 45%, transparent 60%);
+  background-repeat: no-repeat;
+  background-size: 160px 100%;
+  animation:
+    land var(--land-duration) var(--ease-spring),
+    temper var(--effect-duration) ease-in-out 0.15s both;
+}
+
+.sparks span {
+  position: absolute;
+  top: 0;
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--spark);
+  opacity: 0;
+  animation: spark 0.8s ease-out 0.2s both;
+}
+
+.sparks span:nth-child(1) {
+  left: 14%;
+
+  --dx: -6px;
+  --dy: -14px;
+}
+
+.sparks span:nth-child(2) {
+  left: 42%;
+
+  --dx: -2px;
+  --dy: -18px;
+}
+
+.sparks span:nth-child(3) {
+  left: 70%;
+
+  --dx: 4px;
+  --dy: -12px;
+}
+
+.sparks span:nth-child(4) {
+  left: 88%;
+
+  --dx: 8px;
+  --dy: -16px;
+}
+
+@keyframes land {
+  0% {
+    transform: translateY(-6px);
+  }
+
+  55% {
+    transform: scale(1.05, 0.92);
+  }
+
+  80% {
+    transform: scale(0.98, 1.03);
+  }
+
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes warm-up {
+  from {
+    box-shadow: 0 0 0 1px var(--line);
+  }
+}
+
+@keyframes rust {
+  from {
+    background-color: var(--s1);
+    filter: none;
+  }
+
+  to {
+    filter: saturate(0.85);
+  }
+}
+
+@keyframes temper {
+  from {
+    background-position: -160px 0;
+  }
+
+  to {
+    background-position: calc(100% + 160px) 0;
+  }
+}
+
+@keyframes spark {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy));
+  }
+}
+
 @keyframes heat {
   0%,
   100% {
@@ -138,6 +274,18 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .land,
+  .land.warm,
+  .land.rust,
+  .land.temper,
+  .sparks span {
+    animation: none;
+  }
+
+  .tongs {
+    transform: none;
+  }
+
   .hot {
     animation: none;
     box-shadow:

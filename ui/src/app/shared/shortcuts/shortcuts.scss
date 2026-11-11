@@ -1,0 +1,85 @@
+dialog {
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: 20px 24px;
+  border: 1px solid var(--line2);
+  border-radius: 16px;
+  background: var(--s1);
+  color: var(--tx);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 45%);
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+dialog[open] {
+  animation: spring 0.24s var(--ease-spring);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.close {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-m);
+  background: var(--s2);
+  cursor: pointer;
+}
+
+h3 {
+  margin: 16px 0 8px;
+  color: var(--tx3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 16px;
+  margin: 0;
+}
+
+dt {
+  display: flex;
+  gap: 4px;
+}
+
+dd {
+  margin: 0;
+  color: var(--tx2);
+}
+
+kbd {
+  min-width: 24px;
+  padding: 2px 7px;
+  border: 1px solid var(--line2);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--s2);
+  font-size: 12px;
+  text-align: center;
+}
+
+@keyframes spring {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.96);
+  }
+}

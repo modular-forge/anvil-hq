@@ -1,3 +1,4 @@
+import { Celebrations } from '../../shared/celebration/celebration';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -29,6 +30,7 @@ export function releasable(items: readonly ItemSummary[]): ItemSummary[] {
 export class ReleasePage {
   readonly #api = inject(Api);
   readonly #notices = inject(Notices);
+  readonly #celebrations = inject(Celebrations);
   protected readonly store = inject(SpaceStore);
 
   /** From the route parameter. */
@@ -101,6 +103,7 @@ export class ReleasePage {
       const result = await this.#api.release(this.id(), this.version().trim(), [...this.excluded()], false);
       this.published.set(result);
       this.#notices.say(`Released ${this.version().trim()}`);
+      this.#celebrations.play({ kind: 'stamp', version: result.version });
     } catch (error) {
       this.#fail(error);
     } finally {

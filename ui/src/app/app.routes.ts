@@ -14,5 +14,6 @@ export const routes: Routes = [
     title: 'Project · anvil',
     loadComponent: () => import('./pages/project/project').then((m) => m.ProjectPage),
   },
+  { path: 'items/:id', title: 'Item · anvil', loadComponent: () => import('./pages/item/item').then((m) => m.ItemPage) },
   { path: '**', redirectTo: '' },
 ];

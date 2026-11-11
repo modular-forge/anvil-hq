@@ -29,17 +29,43 @@
       <a [routerLink]="[]" [queryParams]="{ view: 'journal', item: null }" [attr.aria-current]="view() === 'journal' ? 'page' : null">Journal</a>
     </nav>
     @if (view() !== 'journal') {
-    <button type="button" class="toggle" [attr.aria-pressed]="board.showCancelled()" (click)="board.showCancelled.set(!board.showCancelled())">
-      Show cancelled · {{ board.cancelledCount() }}
-    </button>
+      <div class="filters" role="group" aria-label="Filters">
+        <label class="filter" [class.on]="board.filters().kind">
+          <span class="sr-only">Kind</span>
+          <select #kindFilter (change)="filter('kind', kindFilter.value)">
+            <option value="">Kind</option>
+            @for (kind of board.choices().kinds; track kind) {
+              <option [value]="kind" [selected]="kind === board.filters().kind">{{ kind }}</option>
+            }
+          </select>
+        </label>
+        <label class="filter" [class.on]="board.filters().label">
+          <span class="sr-only">Label</span>
+          <select #labelFilter (change)="filter('label', labelFilter.value)">
+            <option value="">Label</option>
+            @for (label of board.choices().labels; track label) {
+              <option [value]="label" [selected]="label === board.filters().label">{{ label }}</option>
+            }
+          </select>
+        </label>
+        <label class="filter" [class.on]="board.filters().priority">
+          <span class="sr-only">Priority</span>
+          <select #priorityFilter (change)="filter('priority', priorityFilter.value)">
+            <option value="">Priority</option>
+            @for (option of priorities; track option.value) {
+              <option [value]="option.value" [selected]="option.value === board.filters().priority">{{ option.name }}</option>
+            }
+          </select>
+        </label>
+        @if (board.filtering()) {
+          <button type="button" class="clear" (click)="clearFilters()">Clear filters</button>
+        }
+      </div>
+      <button type="button" class="toggle" [attr.aria-pressed]="board.showCancelled()" (click)="board.showCancelled.set(!board.showCancelled())">
+        Show cancelled · {{ board.cancelledCount() }}
+      </button>
     }
   </div>
-
-  @if (board.readOnly()) {
-    <p class="readonly" role="status">
-      The data space has problems, so the board is read-only until they are fixed. Run <span class="mono">anvil validate</span> to see them.
-    </p>
-  }
 
   @if (view() === 'journal') {
     <anv-journal [project]="project.id" />
@@ -48,7 +74,7 @@
     @if (board.loaded()) {
       <anv-board class="board" />
     } @else {
-      <p class="loading">Loading the board…</p>
+      <anv-skeleton class="board" shape="board" label="Loading the board…" />
     }
     @if (board.selectedId()) {
       <aside class="panel" aria-labelledby="detail-title">

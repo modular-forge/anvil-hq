@@ -112,11 +112,16 @@ h1 {
   font-weight: 500;
 }
 
+// Opening a row: the details drop in under it (design: Inbox).
 .details {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 0 14px 14px;
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 11px 11px;
+  background: var(--s2);
+  animation: drop 0.26s var(--ease-out);
   color: var(--tx2);
   font-size: 14px;
 }
@@ -212,4 +217,17 @@ h1 {
   position: absolute;
   opacity: 0;
   pointer-events: none;
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .details {
+    animation: none;
+  }
 }
