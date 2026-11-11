@@ -5,8 +5,8 @@ features, bugs, decisions and ideas live as JSON and Markdown files in a git rep
 own, so every change has history and a backup. The `anvil` command reads and writes them, a local
 web board shows them, and Claude Code sessions share the same state through it.
 
-> **Status:** early development. The CLI works and `anvil serve` opens the local board. The
-> Claude Code integration is not built yet.
+> **Status:** early development. The CLI, the local board (`anvil serve`) and the Claude Code
+> plugin work; expect the format and the commands to change before 1.0.
 
 ## Requirements
 
@@ -85,6 +85,7 @@ anvil journal add <project> "…" | journal list <project>
 anvil search "…" [--all]                                  # items and journal; --all adds the archive
 anvil archive [--dry-run]                                 # archive what is final for archiveAfterDays
 anvil briefing                                            # open items of the current repo's project
+anvil audit [--project <id>]                              # items that have probably fallen behind
 anvil validate | anvil doctor | anvil migrate
 anvil serve                                               # local board on http://127.0.0.1:4747
 ```
@@ -124,6 +125,36 @@ validate, the board is read-only and lists the problems.
 Keyboard: Ctrl K palette, N new item, G H Home, G I Inbox, J / K next and previous card, Enter
 open, Shift ← → move, E edit the title, Esc close, and ? for the full list. Animations are short
 and never in the way; with your system's "reduce motion" setting they are turned off.
+
+## Claude Code
+
+The `anvil` plugin for [Claude Code](https://code.claude.com) brings each project's items into
+its sessions. It needs the `anvil` command on your PATH (`npm link`, see Quick start) and a data
+space; install it once:
+
+```bash
+claude plugin marketplace add modular-forge/anvil-hq
+claude plugin install anvil@anvil-hq
+```
+
+or, inside a session, `/plugin install anvil --marketplace modular-forge/anvil-hq`.
+
+- **When a session starts** in a repository anvil knows (by its `origin` remote, listed under
+  `repos` in `projects.json`, or by a `.anvil.json` marker), Claude gets that project's
+  briefing: what is in doing, blocked and next, the last journal note and unpushed commits.
+  Elsewhere it gets nothing.
+- **`/anvil:status`**: where the project stands, with what has probably fallen behind.
+- **`/anvil:wrap-up`**: closes a session. Claude proposes the updates (steps, statuses with real
+  evidence, follow-ups, a journal note), applies the ones you approve with the CLI, and reminds
+  you to push. It never pushes.
+- **`/anvil:review`**: a read-only auditor (`anvil audit` plus checks against git and GitHub,
+  such as a merged pull request whose item is still open) reports what has drifted, with the
+  command that fixes each finding; nothing changes until you say which to apply.
+
+Claude changes items only through the CLI, so every change is validated and committed like your
+own. The commands may run the read-only `anvil` and `git` commands without asking; anything that
+writes goes through Claude Code's usual permission prompt, and the commands ask you first. What
+Claude reads becomes part of the conversation, like anything else you show it.
 
 ## Your data
 

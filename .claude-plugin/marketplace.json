@@ -1,0 +1,12 @@
+{
+  "name": "anvil-hq",
+  "description": "The anvil plugin for Claude Code, from the anvil-hq repository.",
+  "owner": { "name": "modular-forge" },
+  "plugins": [
+    {
+      "name": "anvil",
+      "source": "./plugin",
+      "description": "Brings each project's anvil items into Claude Code sessions: a briefing at the start, /anvil:status, /anvil:wrap-up and /anvil:review."
+    }
+  ]
+}

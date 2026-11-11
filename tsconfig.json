@@ -23,6 +23,7 @@
     "bin/**/*.ts",
     "src/**/*.ts",
     "scripts/**/*.ts",
+    "plugin/**/*.ts",
     "test/**/*.ts"
   ]
 }

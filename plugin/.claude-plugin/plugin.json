@@ -1,0 +1,11 @@
+{
+  "name": "anvil",
+  "displayName": "anvil",
+  "version": "0.1.0",
+  "description": "Brings each project's anvil items into Claude Code sessions: a briefing at the start, /anvil:status, /anvil:wrap-up and /anvil:review. Needs the anvil CLI on the PATH.",
+  "author": { "name": "modular-forge" },
+  "homepage": "https://github.com/modular-forge/anvil-hq",
+  "repository": "https://github.com/modular-forge/anvil-hq",
+  "license": "MIT",
+  "keywords": ["project management", "tasks", "anvil"]
+}

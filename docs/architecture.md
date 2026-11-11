@@ -303,6 +303,39 @@ the Chrome already installed on the machine or CI runner, so no browser is downl
 `anvil briefing` always exits with 0: it runs from a Claude Code session hook, which must never
 break a session.
 
+## The Claude Code plugin
+
+`plugin/` is a Claude Code plugin, and `.claude-plugin/marketplace.json` makes this repository
+its marketplace (`claude plugin marketplace add modular-forge/anvil-hq`). It holds no logic of
+its own: everything goes through the `anvil` CLI on the user's PATH, so the plugin works with
+the version of anvil the user installed and adds no second way to change data.
+
+- **`hooks/hooks.json`**: on `SessionStart` (startup, resume, clear and compact) Claude Code runs
+  `node scripts/briefing.ts`, which runs `anvil briefing` in the session's folder and prints its
+  output; Claude Code adds it to the context. It always exits with 0 and prints nothing when the
+  CLI is missing, fails, times out (10 s) or the folder is no known project. On Windows the
+  command goes through the shell, because npm's `anvil` is a `.cmd` shim.
+- **`skills/status`**, **`skills/wrap-up`**, **`skills/review`** become `/anvil:status`,
+  `/anvil:wrap-up` and `/anvil:review`. Their `allowed-tools` pre-approve read-only commands
+  only (`anvil briefing`, `item list`, `audit`…, `git log`, `gh pr view`…), which
+  `test/plugin.test.ts` enforces; writes go through the normal permission prompt, and the
+  instructions make Claude list the exact commands and wait for the user's yes. Wrap-up and
+  review can only be called by the user (`disable-model-invocation`).
+- **`agents/auditor.md`** (`anvil:auditor`): `/anvil:review` runs as this subagent
+  (`context: fork`), which is how the skill's pre-approved commands reach it. It starts from
+  `anvil validate` and `anvil audit --json`, adds checks that need judgement against git and
+  GitHub, and reports findings with evidence and fix commands without applying them.
+- The commands tell Claude to call the CLI as `anvil …` and git without `-C`, because the
+  pre-approved patterns are written that way.
+
+**`anvil audit`** (`src/audit.ts`) holds the checks that need no judgement, so they cost no
+tokens and have tests: a feature or bug still open after all its tasks closed, an open item
+whose steps are all resolved, more than 14 days in doing or 30 blocked, done for 30 days in a
+versioned project without a release, 30 days in the inbox, work in doing in a paused or finished
+project, and an active project with nothing open. Validation refuses data that breaks the rules;
+the audit points at data that follows them but has probably fallen behind. It never fails a
+command: findings are advice.
+
 ## Tests
 
 - `node:test`, one test file per module, all data made up and written to temp folders.

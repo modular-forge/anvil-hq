@@ -1,7 +1,7 @@
 # anvil-hq
 
-A local, dependency-free personal project manager: the `anvil` CLI, a local web board (Angular,
-in progress) and Claude Code integration (later). Public repository (MIT); each user's data lives in a
+A local, dependency-free personal project manager: the `anvil` CLI, a local web board (Angular)
+and a Claude Code plugin (`plugin/`). Public repository (MIT); each user's data lives in a
 separate private repository.
 
 ## Ground rules
@@ -137,6 +137,7 @@ src/projects.ts     # project create, scaffold, promote, release, link
 src/maintenance.ts  # archive and search
 src/init.ts         # init: new data space and user configuration
 src/briefing.ts     # briefing for the Claude Code session hook (never fails)
+src/audit.ts        # audit: items that follow the rules but have probably fallen behind
 src/doctor.ts       # doctor: health and privacy checks
 src/migrate.ts      # format migrations (none yet)
 src/server/         # anvil serve: HTTP server, security checks, read and write API, change feed, static files
@@ -150,6 +151,8 @@ docs/format.md      # format reference (public contract)
 docs/architecture.md # how the code works: write path, concurrency, errors, tests
 ui/                 # the board's Angular sources (src/app: core, shell, shared, pages), e2e/
 ui-dist/            # the built board, committed; served by anvil serve
+plugin/             # Claude Code plugin: session hook, skills (status, wrap-up, review), auditor agent
+.claude-plugin/     # marketplace.json: this repository is the plugin's marketplace
 examples/           # made-up data space, used by docs and tests
 test/               # node:test files (.test.ts)
 ```
