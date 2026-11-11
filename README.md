@@ -50,7 +50,8 @@ from any folder. Each change is committed for you; pushing stays a manual step (
 
 - **Projects** live in `projects.json`, each with an id, an item prefix (`BL`), a state, a kind
   (`web`, `mobile`, `server`, `tooling`) and a release mode: `versioned` projects publish done
-  items in versions, `none` projects are finished when items are done.
+  items in versions, `none` projects are finished when items are done. A project's state
+  changes with `anvil project set`; it cannot be `done` while it has open items.
 - **Items** are Markdown files with a small header: tasks, features and bugs (which group
   tasks), decisions and ideas. Ideas without a project go to the `inbox`; decisions that affect
   every project go to `general`.
@@ -71,6 +72,7 @@ anvil project create <id> --prefix AB --kind web --release none [--scaffold]
 anvil project scaffold <id>                               # starting items from the kind's template
 anvil project promote <idea-id> --id <id> --prefix AB --kind mobile --release versioned
 anvil project release <id> <version> [--exclude AB-7]… [--dry-run] [--out notes.md]
+anvil project set <id> --state paused                     # also --name, --summary, --kind, --notion
 anvil project link                                        # register the current repository
 anvil item create <project> --kind task --title "…" [--parent AB-3] [--step "…"]…
 anvil item list [--project <id>] [--status doing]… [--all]

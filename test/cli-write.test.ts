@@ -26,6 +26,17 @@ describe('anvil write commands', () => {
     assert.equal(git('status', '--porcelain'), '?? notes.txt\n');
   });
 
+  it('changes a project with project set and commits only projects.json', async (t) => {
+    const dir = makeSpace(t, {});
+    const git = initRepo(dir);
+    const { code, stdout } = await run(dir, ['project', 'set', 'beta', '--state', 'paused']);
+    assert.equal(code, 0);
+    assert.match(stdout, /^beta: set state\nCommitted [0-9a-f]+\n$/);
+    assert.equal(git('log', '-1', '--format=%s'), 'beta: set state\n');
+    assert.equal(git('show', '--name-only', '--format=', 'HEAD'), 'projects.json\n');
+    assert.match(readFileSync(join(dir, 'projects.json'), 'utf8'), /"id": "beta",[\s\S]*?"state": "paused"/);
+  });
+
   it('runs a whole flow: steps, status changes and a move, one commit each', async (t) => {
     const dir = makeSpace(t, { 'projects/alpha/items/AL-1.md': itemText(fields('AL-1', { kind: 'feature' })) });
     const git = initRepo(dir);
