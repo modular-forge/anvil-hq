@@ -1,5 +1,5 @@
 import type { ItemFields, Step } from './models';
-import { bodyBlocks, itemDiff, mentions } from './item-text';
+import { bodyBlocks, inline, itemDiff, mentions } from './item-text';
 
 const known = (id: string) => ['AB-1', 'AB-12'].includes(id);
 
@@ -29,6 +29,43 @@ describe('bodyBlocks', () => {
   it('is empty for an empty body or one with only steps', () => {
     expect(bodyBlocks('', known)).toEqual([]);
     expect(bodyBlocks('- [ ] only a step\n', known)).toEqual([]);
+  });
+});
+
+describe('inline', () => {
+  it('reads code, http(s) links, bold and italics, and finds mentions in plain text only', () => {
+    expect(inline('Use `AB-1` with **care**, *really* or _maybe_; see [the docs](https://example.com/a) and AB-12.', known)).toEqual([
+      { text: 'Use ' },
+      { code: 'AB-1' },
+      { text: ' with ' },
+      { strong: 'care' },
+      { text: ', ' },
+      { em: 'really' },
+      { text: ' or ' },
+      { em: 'maybe' },
+      { text: '; see ' },
+      { link: 'the docs', href: 'https://example.com/a' },
+      { text: ' and ' },
+      { id: 'AB-12' },
+      { text: '.' },
+    ]);
+  });
+
+  it('keeps anything that is not a safe link as text', () => {
+    expect(inline('[click](javascript:alert(1))', known)).toEqual([{ text: '[click](javascript:alert(1))' }]);
+    expect(inline('a snake_case_name and 2 * 3 * 4', known)).toEqual([{ text: 'a snake_case_name and 2 * 3 * 4' }]);
+  });
+});
+
+describe('bodyBlocks with Markdown', () => {
+  it('reads headings, numbered lists, continued list items and code blocks', () => {
+    const body = '## Why\nBecause.\n1. first\n2. second\n   goes on\n\n```\n- [ ] code, not a step\n<b>raw</b>\n```\n\n- [ ] a real step\n';
+    expect(bodyBlocks(body, known)).toEqual([
+      { type: 'h', level: 2, parts: [{ text: 'Why' }] },
+      { type: 'p', parts: [{ text: 'Because.' }] },
+      { type: 'ol', items: [[{ text: 'first' }], [{ text: 'second goes on' }]] },
+      { type: 'code', text: '- [ ] code, not a step\n<b>raw</b>' },
+    ]);
   });
 });
 

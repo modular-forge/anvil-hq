@@ -139,23 +139,12 @@ h1 {
   margin: 0;
 }
 
-.bullets {
-  padding-left: 18px;
-  list-style: disc;
-}
-
-.mention,
 .next {
   padding: 0;
   border: 0;
   background: none;
   color: var(--hot2);
   cursor: pointer;
-}
-
-.mention {
-  text-decoration: underline;
-  text-underline-offset: 2px;
 }
 
 .next {

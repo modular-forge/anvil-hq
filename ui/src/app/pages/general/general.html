@@ -31,21 +31,7 @@
           <h2 class="title" [id]="'decision-' + d.item.id">
             <a [routerLink]="['/projects', 'general']" [queryParams]="{ item: d.item.id }">{{ d.item.fields.title }}</a>
           </h2>
-          @for (block of d.blocks; track $index) {
-            @if (block.type === 'p') {
-              <p>
-                @for (part of block.parts; track $index) {@if ('id' in part) {<button type="button" class="mention mono" (click)="show(part.id)">{{ part.id }}</button>} @else {{{ part.text }}}}
-              </p>
-            } @else {
-              <ul class="bullets">
-                @for (entry of block.items; track $index) {
-                  <li>
-                    @for (part of entry; track $index) {@if ('id' in part) {<button type="button" class="mention mono" (click)="show(part.id)">{{ part.id }}</button>} @else {{{ part.text }}}}
-                  </li>
-                }
-              </ul>
-            }
-          }
+          <anv-markdown class="text" [blocks]="d.blocks" (mention)="show($event)" />
           @if (d.item.fields.supersededBy; as next) {
             <button type="button" class="next" (click)="show(next)">Superseded by <span class="mono">{{ next }}</span> <span aria-hidden="true">→</span></button>
           }

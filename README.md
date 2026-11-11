@@ -81,6 +81,7 @@ anvil item status <id> doing
 anvil item status <id> done --evidence "https://github.com/…/pull/12"
 anvil item status <id> blocked --reason "…"
 anvil item set <id> --priority high --labels ui,forms     # an empty value removes a field
+anvil item describe <id> --text "…" | --file notes.md     # replace the description; steps stay
 anvil item move <id> <project>                            # new id, old one kept as an alias
 anvil step add <id> "…" | step check <id> <n> | step uncheck <id> <n> | step skip <id> <n> --reason "…"
 anvil journal add <project> "…" | journal list <project>

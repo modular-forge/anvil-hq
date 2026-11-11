@@ -37,6 +37,19 @@ describe('anvil write commands', () => {
     assert.match(readFileSync(join(dir, 'projects.json'), 'utf8'), /"id": "beta",[\s\S]*?"state": "paused"/);
   });
 
+  it('replaces a description from --text or --file and commits it', async (t) => {
+    const dir = makeSpace(t, { 'projects/alpha/items/AL-1.md': itemText(fields('AL-1'), 'Old\n\n- [ ] Step\n') });
+    const git = initRepo(dir);
+    writeFileSync(join(dir, 'new.md'), 'From a file.\n');
+    assert.equal((await run(dir, ['item', 'describe', 'AL-1', '--text', 'From text.'])).code, 0);
+    assert.equal(git('log', '-1', '--format=%s'), 'AL-1: edit description\n');
+    assert.equal((await run(dir, ['item', 'describe', 'AL-1', '--file', join(dir, 'new.md')])).code, 0);
+    assert.match(readFileSync(join(dir, 'projects/alpha/items/AL-1.md'), 'utf8'), /---\nFrom a file\.\n\n- \[ \] Step\n$/);
+    const both = await run(dir, ['item', 'describe', 'AL-1', '--text', 'x', '--file', 'y']);
+    assert.equal(both.code, 2);
+    assert.match(both.stderr, /either --text "…" or --file <path>/);
+  });
+
   it('runs a whole flow: steps, status changes and a move, one commit each', async (t) => {
     const dir = makeSpace(t, { 'projects/alpha/items/AL-1.md': itemText(fields('AL-1', { kind: 'feature' })) });
     const git = initRepo(dir);

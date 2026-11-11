@@ -94,6 +94,8 @@ export interface ItemSummary {
 
 export interface ItemDetail extends ItemSummary {
   body: string;
+  /** The body without its steps: what the description editor shows and saves. */
+  description: string;
   steps: Step[];
   children: ItemSummary[];
 }

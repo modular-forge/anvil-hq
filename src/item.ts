@@ -43,3 +43,27 @@ export function parseSteps(body: string): Step[] {
   });
   return steps;
 }
+
+/**
+ * An item's description: its body without the step lines, trimmed. Text between or after the
+ * steps is part of it too; checkboxes inside fenced code blocks are text, not steps.
+ */
+export function descriptionOf(body: string): string {
+  const stepLines = new Set(parseSteps(body).map((step) => step.line));
+  const lines = body.split('\n').filter((_, line) => !stepLines.has(line));
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/**
+ * The body with `description` in place of the old one and the steps kept as they are, checked
+ * and skipped ones included, after it. Returns null when the description holds checkboxes,
+ * which would turn into steps.
+ */
+export function withDescription(body: string, description: string): string | null {
+  const text = description.replaceAll('\r\n', '\n').trim();
+  if (parseSteps(text).length) return null;
+  const lines = body.split('\n');
+  const steps = parseSteps(body).map((step) => lines[step.line] ?? '');
+  const parts = [text, steps.join('\n')].filter(Boolean);
+  return parts.length ? `${parts.join('\n\n')}\n` : '';
+}

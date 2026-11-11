@@ -290,6 +290,18 @@ export class ProjectBoard {
     });
   }
 
+  /** Replaces the item's description (Markdown); its steps stay. Returns whether it saved. */
+  setDescription(detail: ItemDetail, text: string): Promise<boolean> {
+    if (this.readOnly()) return Promise.resolve(false);
+    return this.#serial(async () => {
+      const fresh = this.#freshDetail(detail);
+      if (text.trim() === fresh.description.trim()) return true;
+      const result = await this.#write(fresh.id, () => this.#api.setDescription(fresh, text));
+      if (result) this.#notices.say(text.trim() ? 'Description saved' : 'Description removed');
+      return !!result;
+    });
+  }
+
   /** Creates a task under a feature or bug, in its backlog. */
   addTask(parent: ItemDetail, title: string): Promise<boolean> {
     if (this.readOnly() || !title.trim()) return Promise.resolve(false);

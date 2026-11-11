@@ -1,3 +1,4 @@
+import { Markdown } from '../../shared/markdown/markdown';
 import { Empty } from '../../shared/empty/empty';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
@@ -32,7 +33,7 @@ export function age(date: string, now: Date): string {
 @Component({
   selector: 'anv-inbox',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Empty, RouterLink],
+  imports: [Markdown, Empty, RouterLink],
   templateUrl: './inbox.html',
   styleUrl: './inbox.scss',
 })

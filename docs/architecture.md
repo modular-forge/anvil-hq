@@ -140,6 +140,7 @@ command and commits the touched paths the same way, so the board can never write
 | --- | --- |
 | `POST /api/items` | `item create` (answers `201`) |
 | `PATCH /api/items/<id>` | `item set`; lists as arrays, `null` removes a field |
+| `POST /api/items/<id>/description` | `item describe` (`text`; empty removes it) |
 | `POST /api/items/<id>/status` | `item status`; `done` without evidence saves `confirmed by user (board)` |
 | `POST /api/items/<id>/move` | `item move` |
 | `POST /api/items/<id>/promote` | `project promote` |
@@ -274,8 +275,17 @@ page and opens it from the panel. Shortcuts never fire while a field has the key
 is open.
 
 Dialogs use the native modal `<dialog>`: the browser traps the focus, makes the page behind it
-inert and closes it with Escape. Item bodies are shown as paragraphs and lists built from data,
-never as HTML, with mentions of other items turned into links.
+inert and closes it with Escape.
+
+**Descriptions.** An item's description is its body without the step lines (`descriptionOf` in
+`src/item.ts`; item responses carry it as `description`). `item describe` and its route replace
+it and keep the steps exactly as they were, after it; a description with checkboxes is refused,
+because they would become steps. The board edits it in place, in the panel and on the item page
+(Ctrl Enter saves, Escape cancels), and shows bodies as a safe Markdown subset: paragraphs,
+headings (from `h4`), bullet and numbered lists, code blocks, bold, italics, inline code and
+`http(s)` links. `core/item-text.ts` parses it into data and `shared/markdown/` renders that
+data, so a body is never treated as HTML and nothing in it can run; mentions of other items
+become links.
 
 **The token** reaches the page in the fragment. `main.ts` moves it to `sessionStorage` and
 removes it from the address bar before the router starts, so it never shows in the URL again,

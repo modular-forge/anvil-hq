@@ -71,6 +71,21 @@ test('opens an item on its own page and edits it there', async ({ page }) => {
   expect(file(task)).toContain(`parent: ${feature}`);
 });
 
+test('edits the description in Markdown and keeps the steps', async ({ page }) => {
+  const task = create('home-lab', '--kind', 'task', '--title', 'Label the cables', '--body', 'Old notes.', '--step', 'Buy labels', '--step', 'Print them');
+  await open(page, `/items/${task}`);
+  await page.getByRole('button', { name: 'Edit the description' }).click();
+  const area = page.getByLabel('Description, in Markdown');
+  await expect(area).toHaveValue('Old notes.');
+  await area.fill('## Why\n\nNobody knows which cable is **which**.\n\n- one label per end');
+  await page.keyboard.press('Control+Enter');
+
+  await expect(page.locator('anv-markdown').getByRole('heading', { name: 'Why' })).toBeVisible();
+  await expect(page.locator('anv-markdown strong')).toHaveText('which');
+  await expect(page.getByRole('checkbox', { name: /Buy labels/ })).toBeVisible();
+  await expect.poll(() => file(task)).toContain('## Why\n\nNobody knows which cable is **which**.\n\n- one label per end\n\n- [ ] Buy labels\n- [ ] Print them\n');
+});
+
 test('moves around with the keyboard and lists the shortcuts', async ({ page }) => {
   await open(page, '/projects/home-lab');
   await expect(page.locator('[data-id="HL-1"]')).toBeVisible();

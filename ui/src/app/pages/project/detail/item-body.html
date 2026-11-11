@@ -1,20 +1,40 @@
-@if (blocks().length) {
+@let canEdit = !board.readOnly();
+@if (blocks().length || canEdit) {
   <section aria-labelledby="desc-title" class="description">
-    <h3 id="desc-title" [class.sr-only]="hideHeading()">Description</h3>
-    @for (block of blocks(); track $index) {
-      @if (block.type === 'p') {
-        <p>
-          @for (part of block.parts; track $index) {@if ('id' in part) {<button type="button" class="mention mono" (click)="board.onSelect(part.id)">{{ part.id }}</button>} @else {{{ part.text }}}}
-        </p>
-      } @else {
-        <ul>
-          @for (entry of block.items; track $index) {
-            <li>
-              @for (part of entry; track $index) {@if ('id' in part) {<button type="button" class="mention mono" (click)="board.onSelect(part.id)">{{ part.id }}</button>} @else {{{ part.text }}}}
-            </li>
-          }
-        </ul>
+    <div class="section-head" [class.quiet]="hideHeading()">
+      <h3 id="desc-title" [class.sr-only]="hideHeading()">Description</h3>
+      @if (canEdit && !editing()) {
+        <button type="button" class="edit" (click)="edit()">
+          {{ blocks().length ? 'Edit' : 'Add a description' }}<span class="sr-only">{{ blocks().length ? ' the description' : '' }}</span>
+        </button>
       }
+    </div>
+
+    @if (editing()) {
+      <form class="editor" (submit)="$event.preventDefault(); save()">
+        <label class="sr-only" for="desc-text">Description, in Markdown</label>
+        <textarea
+          #area
+          id="desc-text"
+          class="mono"
+          [rows]="rows()"
+          aria-describedby="desc-hint"
+          [value]="draft()"
+          (input)="draft.set(area.value)"
+          (keydown)="keydown($event)"
+        ></textarea>
+        <p id="desc-hint" class="hint">
+          Markdown: <span class="mono">**bold**</span>, <span class="mono">*italics*</span>, <span class="mono">`code`</span>,
+          <span class="mono">[links](https://…)</span>, lists and <span class="mono">## headings</span>. Steps are not part of it: add them under Steps.
+        </p>
+        <div class="buttons">
+          <button type="submit" class="save" [disabled]="saving()">Save</button>
+          <button type="button" (click)="cancel()">Cancel</button>
+          <span class="keys mono">Ctrl Enter · Esc</span>
+        </div>
+      </form>
+    } @else if (blocks().length) {
+      <anv-markdown [blocks]="blocks()" (mention)="board.onSelect($event)" />
     }
   </section>
 }
