@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse, HttpHeaders, type HttpInterceptorFn } fr
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, type Observable } from 'rxjs';
 import type {
-  CreateResult, GitStatus, HistoryEntry, ItemDetail, ItemSummary, JournalNote, JournalText, NewItem, NewProject, ReleaseResult,
+  CreateResult, GitStatus, HistoryEntry, ItemDetail, ItemSummary, JournalNote, JournalText, NewItem, NewProject, PushResult, ReleaseResult,
   SearchResult, Space, WriteResult,
 } from './models';
 import { TOKEN_HEADER, readToken, sessionStore } from './token';
@@ -53,6 +53,11 @@ export class Api {
 
   git(): Promise<GitStatus> {
     return firstValueFrom(this.#http.get<GitStatus>('/api/git'));
+  }
+
+  /** Pushes the data space's branch to its upstream; never with force. */
+  push(): Promise<PushResult> {
+    return this.#write(this.#http.post<PushResult>('/api/git/push', {}));
   }
 
   /** Items of a project, cancelled and archived ones included. */
@@ -128,7 +133,7 @@ export class Api {
     return this.#write(this.#http.post<WriteResult>(`${itemUrl(item.id)}/move`, { project }, ifMatch(item.etag)));
   }
 
-  async #write<T extends WriteResult>(request: Observable<T>): Promise<T> {
+  async #write<T>(request: Observable<T>): Promise<T> {
     try {
       return await firstValueFrom(request);
     } catch (error) {

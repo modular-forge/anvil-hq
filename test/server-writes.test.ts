@@ -303,3 +303,82 @@ describe('server history and git status', () => {
     assert.deepEqual((await call('/api/git')).json(), { repository: false, upstream: false, unpushed: null, oldestUnpushed: null, uncommitted: [], stale: true });
   });
 });
+
+describe('server writes: push', () => {
+  /** A bare repository in a temporary folder, removed after the test. */
+  function bareRemote(t: TestContext): string {
+    const remote = mkdtempSync(join(tmpdir(), 'anvil-remote-'));
+    t.after(() => rmSync(remote, { recursive: true, force: true }));
+    execFileSync('git', ['init', '--quiet', '--bare', '--initial-branch=main', remote]);
+    return remote;
+  }
+  const remoteHead = (remote: string) => execFileSync('git', ['--git-dir', remote, 'rev-parse', 'main'], { encoding: 'utf8' }).trim();
+  const push = { method: 'POST', json: {} } as const;
+
+  it('pushes the current branch to its upstream, and only that', async (t) => {
+    const { call, git } = await serve(t);
+    const remote = bareRemote(t);
+    git('remote', 'add', 'origin', remote);
+    git('push', '--quiet', '-u', 'origin', 'main');
+    await call('/api/projects/alpha/journal', { method: 'POST', json: { text: 'x' } });
+    git('tag', 'v9.9.9');
+    git('branch', 'side');
+
+    const reply = await call('/api/git/push', push);
+    assert.equal(reply.status, 200);
+    assert.equal(reply.json().pushed, 1);
+    assert.deepEqual([reply.json().git.unpushed, reply.json().git.stale], [0, false]);
+    assert.equal(remoteHead(remote), git('rev-parse', 'HEAD').trim());
+    const refs = execFileSync('git', ['--git-dir', remote, 'for-each-ref', '--format=%(refname)'], { encoding: 'utf8' }).trim();
+    assert.equal(refs, 'refs/heads/main', 'no tags and no other branches');
+
+    const again = await call('/api/git/push', push);
+    assert.deepEqual([again.status, again.json().pushed], [200, 0]);
+  });
+
+  it('never overwrites a remote that moved on: the push is rejected and nothing changes', async (t) => {
+    const { call, git } = await serve(t);
+    const remote = bareRemote(t);
+    git('remote', 'add', 'origin', remote);
+    git('push', '--quiet', '-u', 'origin', 'main');
+    const other = mkdtempSync(join(tmpdir(), 'anvil-clone-'));
+    t.after(() => rmSync(other, { recursive: true, force: true }));
+    execFileSync('git', ['clone', '--quiet', remote, other]);
+    execFileSync('git', ['-C', other, '-c', 'user.name=Other', '-c', 'user.email=other@example.com', 'commit', '--quiet', '--allow-empty', '-m', 'elsewhere']);
+    execFileSync('git', ['-C', other, 'push', '--quiet']);
+    const theirs = remoteHead(remote);
+    await call('/api/projects/alpha/journal', { method: 'POST', json: { text: 'x' } });
+
+    const reply = await call('/api/git/push', push);
+    assert.equal(reply.status, 409);
+    assert.equal(reply.json().failure, 'rejected');
+    assert.match(reply.json().error, /git pull --rebase/);
+    assert.equal(remoteHead(remote), theirs);
+    assert.equal(reply.json().git.unpushed, 1);
+  });
+
+  it('explains a missing upstream, an unreachable remote and a data space outside git', async (t) => {
+    const { call, git } = await serve(t);
+    let reply = await call('/api/git/push', push);
+    assert.deepEqual([reply.status, reply.json().failure], [422, 'no-upstream']);
+
+    const remote = bareRemote(t);
+    git('remote', 'add', 'origin', remote);
+    git('push', '--quiet', '-u', 'origin', 'main');
+    git('commit', '--quiet', '--allow-empty', '-m', 'one');
+    rmSync(remote, { recursive: true, force: true });
+    reply = await call('/api/git/push', push);
+    assert.deepEqual([reply.status, reply.json().failure], [502, 'failed']);
+    assert.match(reply.json().error, /^git could not push: /);
+
+    const outside = await startTestServer(t, FILES, { watch: false });
+    assert.equal((await outside.call('/api/git/push', push)).status, 422);
+  });
+
+  it('takes no options: an empty body only, and POST only', async (t) => {
+    const { call } = await serve(t);
+    const forced = await call('/api/git/push', { method: 'POST', json: { force: true } });
+    assert.deepEqual([forced.status, forced.json().error], [400, 'unexpected field(s): force']);
+    assert.equal((await call('/api/git/push', { method: 'PATCH', json: {} })).status, 405);
+  });
+});

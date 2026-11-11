@@ -2,10 +2,12 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, map } from 'rxjs';
+import { WriteError } from '../../core/api';
 import type { GitStatus } from '../../core/models';
 import { SpaceStore } from '../../core/space-store';
 import { Icon } from '../../shared/icon/icon';
 import { Composer } from '../../shared/new-item/composer';
+import { Notices } from '../../shared/notices/notices';
 import { PaletteService } from '../../shared/palette/palette';
 
 export interface Crumbs {
@@ -54,10 +56,17 @@ export function backupDetails(git: GitStatus): { title: string; text: string } {
   };
 }
 
+/** Whether the board can push: there is an upstream and something to send to it. */
+export function canPush(git: GitStatus | null): boolean {
+  return !!git?.repository && git.upstream && (git.unpushed ?? 0) > 0;
+}
+
 @Component({
   selector: 'anv-topbar',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Icon],
+  // Escape closes the backup panel from the pill or from inside it, before anything else sees it.
+  host: { '(keydown.escape)': 'closeBackup($event)' },
   templateUrl: './topbar.html',
   styleUrl: './topbar.scss',
 })
@@ -66,6 +75,7 @@ export class Topbar {
   protected readonly store = inject(SpaceStore);
   protected readonly palette = inject(PaletteService);
   protected readonly composer = inject(Composer);
+  readonly #notices = inject(Notices);
 
   readonly #url = toSignal(
     this.#router.events.pipe(
@@ -90,10 +100,34 @@ export class Topbar {
   });
   protected readonly backupTitle = computed(() => this.#details().title);
   protected readonly backupText = computed(() => this.#details().text);
+  protected readonly canPush = computed(() => canPush(this.store.git()));
+  protected readonly pushing = signal(false);
+  /** Why the last push failed, shown in the panel until the next try. */
+  protected readonly pushError = signal('');
+
+  protected toggleBackup(): void {
+    this.pushError.set('');
+    this.backupOpen.update((open) => !open);
+  }
 
   protected closeBackup(event: Event): void {
     if (!this.backupOpen()) return;
     event.stopPropagation();
     this.backupOpen.set(false);
+  }
+
+  protected async push(): Promise<void> {
+    if (this.pushing()) return;
+    this.pushing.set(true);
+    this.pushError.set('');
+    try {
+      const pushed = await this.store.push();
+      this.backupOpen.set(false);
+      this.#notices.say(`Pushed ${pushed} ${pushed === 1 ? 'commit' : 'commits'}`);
+    } catch (error) {
+      this.pushError.set(error instanceof WriteError ? error.message : 'The push failed; see the browser console.');
+    } finally {
+      this.pushing.set(false);
+    }
   }
 }

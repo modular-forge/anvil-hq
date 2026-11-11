@@ -65,11 +65,14 @@
   color: var(--hot2);
 }
 
+button.backup {
+  cursor: pointer;
+}
+
 .backup.stale {
   border-color: color-mix(in srgb, var(--hot1) 55%, var(--line2));
   background: color-mix(in srgb, var(--hot1) 10%, var(--s2));
   color: var(--tx);
-  cursor: pointer;
 }
 
 // The count falls into place like a drop of molten metal whenever it changes.
@@ -130,17 +133,38 @@
   font-weight: 600;
 }
 
-.backup-panel code {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--tx);
-  font-size: 12px;
-  overflow-wrap: anywhere;
+.push {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  margin: 4px 0 8px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--hotbtn);
+  color: var(--hotink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.push anv-icon {
+  color: inherit;
 }
 
 .note {
   color: var(--tx3);
   font-size: 12px;
+}
+
+.backup-panel .push-error {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--st-blocked) 60%, var(--line2));
+  border-radius: var(--radius-m);
+  background: var(--s1);
+  color: var(--tx);
+  overflow-wrap: anywhere;
 }
 
 .new {

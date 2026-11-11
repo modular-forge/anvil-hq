@@ -31,8 +31,9 @@ Details are in [docs/architecture.md](docs/architecture.md#the-local-server).
   server runs. Each start makes a new one; stop the server (Ctrl C) when you are done.
 - **Never expose the port.** Do not forward it, tunnel it or put it behind a proxy reachable from
   other machines. anvil is built for one person on one machine.
-- **Keep your data space in a private repository**, and push it: the board never pushes for you,
-  and warns when the only copy is on your machine. `anvil doctor` checks that the remote is
+- **Keep your data space in a private repository**, and push it: the board warns when the only
+  copy is on your machine and pushes only when you press "Push now" (the current branch to its
+  upstream, never with force). The CLI and the Claude Code plugin never push. `anvil doctor` checks that the remote is
   private, using the GitHub CLI when it is installed.
 - **Never put secrets in items.** They are plain Markdown in a git repository.
 

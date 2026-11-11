@@ -44,7 +44,8 @@ anvil doctor                                                  # is everything co
 ```
 
 `anvil init` makes the new data space the default on this machine, so the other commands find it
-from any folder. Each change is committed for you; pushing stays a manual step (`git push`).
+from any folder. Each change is committed for you; pushing is up to you: `git push`, or "Push
+now" in the board's backup panel. Nothing else ever pushes.
 
 ## Concepts
 

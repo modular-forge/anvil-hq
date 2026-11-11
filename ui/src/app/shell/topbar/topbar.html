@@ -13,37 +13,35 @@
   </button>
 
   @if (backup(); as label) {
-    @if (store.git()?.stale) {
-      <div class="backup-wrap">
-        <button type="button" class="backup stale" aria-controls="backup-panel" [attr.aria-expanded]="backupOpen()" (click)="backupOpen.set(!backupOpen())" (keydown.escape)="closeBackup($event)">
-          <anv-icon name="push" [size]="13" [strokeWidth]="2.2" />
-          @for (text of [label]; track text) {
-            <span class="drop">{{ text }}</span>
-          }
-          <span class="sr-only">, the backup is behind</span>
-        </button>
-        @if (backupOpen()) {
-          <div id="backup-panel" class="backup-panel" role="region" aria-label="Backup">
-            <anv-icon name="push" [size]="20" [strokeWidth]="2.2" />
-            <div>
-              <p class="panel-title">{{ backupTitle() }}</p>
-              <p>{{ backupText() }}</p>
-              @if (store.git()?.upstream && store.space()?.dir; as dir) {
-                <code class="mono">git -C "{{ dir }}" push</code>
-              }
-              <p class="note">The board never pushes for you.</p>
-            </div>
-          </div>
-        }
-      </div>
-    } @else {
-      <span class="backup" role="status">
+    <div class="backup-wrap">
+      <button type="button" class="backup" [class.stale]="store.git()?.stale" aria-controls="backup-panel" [attr.aria-expanded]="backupOpen()" (click)="toggleBackup()">
         <anv-icon name="push" [size]="13" [strokeWidth]="2.2" />
         @for (text of [label]; track text) {
           <span class="drop">{{ text }}</span>
         }
-      </span>
-    }
+        @if (store.git()?.stale) {
+          <span class="sr-only">, the backup is behind</span>
+        }
+      </button>
+      @if (backupOpen()) {
+        <div id="backup-panel" class="backup-panel" role="region" aria-label="Backup">
+          <anv-icon name="push" [size]="20" [strokeWidth]="2.2" />
+          <div>
+            <p class="panel-title">{{ backupTitle() }}</p>
+            <p>{{ backupText() }}</p>
+            @if (canPush()) {
+              <button type="button" class="push" [disabled]="pushing()" (click)="push()">
+                <anv-icon name="push" [size]="14" [strokeWidth]="2.4" />{{ pushing() ? 'Pushing…' : 'Push now' }}
+              </button>
+              <p class="note">Sends this branch to its remote, never with force. The board pushes only when you ask.</p>
+            }
+            @if (pushError(); as error) {
+              <p class="push-error" role="alert">{{ error }}</p>
+            }
+          </div>
+        </div>
+      }
+    </div>
   }
 
   <button type="button" class="new" (click)="composer.open()">

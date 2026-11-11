@@ -1,10 +1,12 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { WriteError } from '../../core/api';
 import type { GitStatus } from '../../core/models';
 import { SpaceStore } from '../../core/space-store';
+import { Notices } from '../../shared/notices/notices';
 import { git } from '../../testing';
-import { Topbar, backupDetails, backupLabel, crumbsFor } from './topbar';
+import { Topbar, backupDetails, backupLabel, canPush, crumbsFor } from './topbar';
 
 describe('crumbsFor', () => {
   const names = (id: string) => (id === 'alpha' ? 'Alpha site' : null);
@@ -41,20 +43,53 @@ describe('backupDetails', () => {
   });
 });
 
+describe('canPush', () => {
+  it('needs an upstream and something to send', () => {
+    expect(canPush(null)).toBe(false);
+    expect(canPush(git())).toBe(false);
+    expect(canPush(git({ unpushed: 2 }))).toBe(true);
+    expect(canPush(git({ upstream: false, unpushed: null }))).toBe(false);
+    expect(canPush(git({ repository: false, unpushed: 2 }))).toBe(false);
+  });
+});
+
 describe('Topbar', () => {
   const status = signal<GitStatus | null>(git({ unpushed: 2 }));
+  let pushes: number;
+  let pushReply: () => Promise<number>;
 
   beforeEach(() => {
+    pushes = 0;
+    pushReply = () => {
+      status.set(git());
+      return Promise.resolve(2);
+    };
+    status.set(git({ unpushed: 2 }));
     TestBed.configureTestingModule({
       providers: [
         provideRouter([{ path: 'projects/:id', children: [] }]),
         {
           provide: SpaceStore,
-          useValue: { git: status, space: signal({ dir: '/data/demo' }), project: (id: string) => (id === 'alpha' ? { name: 'Alpha site' } : null) },
+          useValue: {
+            git: status,
+            space: signal({ dir: '/data/demo' }),
+            project: (id: string) => (id === 'alpha' ? { name: 'Alpha site' } : null),
+            projects: signal([]),
+            push: () => {
+              pushes++;
+              return pushReply();
+            },
+          },
         },
       ],
     });
   });
+
+  async function render() {
+    const fixture = TestBed.createComponent(Topbar);
+    await fixture.whenStable();
+    return { fixture, el: fixture.nativeElement as HTMLElement };
+  }
 
   it('shows where the board is and the unpushed commits', async () => {
     const fixture = TestBed.createComponent(Topbar);
@@ -63,21 +98,52 @@ describe('Topbar', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('.crumbs')?.textContent).toContain('Projects');
     expect(el.querySelector('.here')?.textContent).toBe('Alpha site');
-    expect(el.querySelector('[role="status"]')?.textContent).toContain('2 not pushed');
+    expect(el.querySelector('button.backup')?.textContent).toContain('2 not pushed');
+    expect(el.querySelector('button.backup.stale')).toBeNull();
   });
 
-  it('opens the details of a stale backup, with the command to push', async () => {
+  it('opens the details of a stale backup, and pushes when asked', async () => {
     status.set(git({ unpushed: 11, stale: true }));
-    const fixture = TestBed.createComponent(Topbar);
-    await fixture.whenStable();
-    const el = fixture.nativeElement as HTMLElement;
-    const pill = el.querySelector<HTMLButtonElement>('button.backup');
+    const { fixture, el } = await render();
+    const pill = el.querySelector<HTMLButtonElement>('button.backup.stale');
     expect(pill?.getAttribute('aria-expanded')).toBe('false');
     pill?.click();
     await fixture.whenStable();
     expect(pill?.getAttribute('aria-expanded')).toBe('true');
     expect(el.querySelector('#backup-panel')?.textContent).toContain('11 commits not pushed');
-    expect(el.querySelector('#backup-panel code')?.textContent).toBe('git -C "/data/demo" push');
-    status.set(git({ unpushed: 2 }));
+    expect(pushes).toBe(0);
+
+    el.querySelector('#backup-panel')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await fixture.whenStable();
+    expect(el.querySelector('#backup-panel')).toBeNull();
+    pill?.click();
+    await fixture.whenStable();
+
+    el.querySelector<HTMLButtonElement>('#backup-panel button.push')?.click();
+    await fixture.whenStable();
+    expect(pushes).toBe(1);
+    expect(el.querySelector('#backup-panel')).toBeNull();
+    expect(el.querySelector('button.backup')).toBeNull();
+    expect(TestBed.inject(Notices).message()).toBe('Pushed 2 commits');
+  });
+
+  it('keeps the panel open with the reason when the push is refused', async () => {
+    pushReply = () => Promise.reject(new WriteError('the remote has commits this copy does not have', 409));
+    const { fixture, el } = await render();
+    el.querySelector<HTMLButtonElement>('button.backup')?.click();
+    await fixture.whenStable();
+    el.querySelector<HTMLButtonElement>('button.push')?.click();
+    await fixture.whenStable();
+    expect(el.querySelector('#backup-panel [role="alert"]')?.textContent).toContain('the remote has commits');
+    expect(el.querySelector<HTMLButtonElement>('button.push')?.disabled).toBe(false);
+  });
+
+  it('offers no push without a remote', async () => {
+    status.set(git({ upstream: false, unpushed: null, stale: true }));
+    const { fixture, el } = await render();
+    el.querySelector<HTMLButtonElement>('button.backup')?.click();
+    await fixture.whenStable();
+    expect(el.querySelector('#backup-panel')?.textContent).toContain('Add a private remote');
+    expect(el.querySelector('button.push')).toBeNull();
   });
 });

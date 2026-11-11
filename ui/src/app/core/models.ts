@@ -45,6 +45,12 @@ export interface GitStatus {
   stale: boolean;
 }
 
+/** What a push from the board did: how many commits went up, and the git status after it. */
+export interface PushResult {
+  pushed: number;
+  git: GitStatus;
+}
+
 /** Header of an item. Values are text or lists of text, as in the file. */
 export interface ItemFields {
   id: string;
