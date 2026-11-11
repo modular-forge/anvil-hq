@@ -6,7 +6,8 @@ import { join } from 'node:path';
 import { TOOL_ROOT } from './data-dir.ts';
 import { AnvilError } from './errors.ts';
 import { writeAtomic } from './fsutil.ts';
-import { originUrl, repoSlug, repositoryRoot } from './git.ts';
+import { originUrl, repoSlug, repositoryRoot, resolveCommit } from './git.ts';
+import { checkRelease, type ReleaseCheck } from './release-git.ts';
 import { serializeItem } from './item.ts';
 import { validateSchema, type Schema } from './json-schema.ts';
 import { normalizeProject, writeRegistry } from './registry.ts';
@@ -170,14 +171,27 @@ export interface ReleaseResult extends Change {
   dryRun: boolean;
   released: string[];
   notes: string;
+  /** With a git ref: what git said about each done item. */
+  checks?: ReleaseCheck[];
+}
+
+export interface ReleaseOptions {
+  exclude?: string[];
+  dryRun?: boolean;
+  /**
+   * Check the done items against a commit of one of the project's repositories: `dir` is a
+   * folder inside it and `ref` the version's tag, branch or hash. Items whose evidence names a
+   * PR or commit the version does not have stay done; items git cannot tell about are released.
+   */
+  git?: { dir: string; ref: string };
 }
 
 /**
- * Marks the project's done tasks, features and bugs as released in `version`, except `exclude`,
- * and returns the release notes with the result. With `dryRun`, validates and builds the notes
- * without writing.
+ * Marks the project's done tasks, features and bugs as released in `version`, except `exclude`
+ * and, with `git`, the ones whose work is not in the version yet. Returns the release notes with
+ * the result. With `dryRun`, validates and builds the notes without writing.
  */
-export function releaseProject(ctx: Context, projectId: string, version: string, { exclude = [], dryRun = false }: { exclude?: string[]; dryRun?: boolean } = {}, now: Date): ReleaseResult {
+export function releaseProject(ctx: Context, projectId: string, version: string, { exclude = [], dryRun = false, git }: ReleaseOptions = {}, now: Date): ReleaseResult {
   const project = getProject(ctx, projectId);
   if (project.release !== 'versioned') throw new AnvilError(`project "${project.id}" is not versioned, so nothing is released`);
   if (!version) throw new AnvilError('a release needs a version');
@@ -187,8 +201,19 @@ export function releaseProject(ctx: Context, projectId: string, version: string,
   const doneIds = new Set(done.map((e) => e.item.fields.id));
   const unknown = exclude.filter((id) => !doneIds.has(id));
   if (unknown.length) throw new AnvilError(`cannot exclude ${unknown.join(', ')}: not a done item of ${project.id}`);
-  const selected = done.filter((e) => !exclude.includes(e.item.fields.id));
-  if (!selected.length) throw new AnvilError(`${project.id} has no done items to release`);
+  let selected = done.filter((e) => !exclude.includes(e.item.fields.id));
+
+  let checks: ReleaseCheck[] | undefined;
+  if (git) {
+    checks = checkAgainstGit(project, git, selected.map((e) => e.item.fields));
+    const held = new Set(checks.filter((c) => c.verdict === 'out').map((c) => c.id));
+    selected = selected.filter((e) => !held.has(e.item.fields.id));
+  }
+  if (!selected.length) {
+    throw new AnvilError(checks?.length
+      ? `none of ${project.id}'s done items is in ${git?.ref}: ${checks.map((c) => `${c.id} (${c.detail})`).join('; ')}`
+      : `${project.id} has no done items to release`);
+  }
 
   const date = today(now);
   const updates = selected.map((entry) => {
@@ -207,7 +232,21 @@ export function releaseProject(ctx: Context, projectId: string, version: string,
     notes: releaseNotes(project, version, date, updates.map(({ fields }) => fields)),
     paths: dryRun ? [] : updates.map(({ entry }) => entry.file),
     message: `${project.id}: release ${version} (${updates.length} item(s))`,
+    ...(checks ? { checks } : {}),
   };
+}
+
+/** Finds the project's repository around `dir`, resolves `ref` in it and checks the items. */
+function checkAgainstGit(project: Project, { dir, ref }: { dir: string; ref: string }, items: ItemFields[]): ReleaseCheck[] {
+  const root = repositoryRoot(dir);
+  if (!root) throw new AnvilError(`to check against ${ref}, run the release inside a repository of ${project.id}`);
+  const slug = repoSlug(originUrl(root));
+  const repos = project.repos ?? [];
+  const ours = readMarker(root) === project.id || (slug !== null && repos.some((r) => r.toLowerCase() === slug.toLowerCase()));
+  if (!ours) throw new AnvilError(`${slug ?? root} is not a repository of ${project.id}; run the release inside one of: ${repos.join(', ') || '(none registered; see anvil project link)'}`);
+  const commit = resolveCommit(root, ref);
+  if (!commit) throw new AnvilError(`"${ref}" is not a tag, branch or commit of ${slug ?? root}`);
+  return checkRelease(root, commit, slug, repos, items);
 }
 
 /** Markdown release notes: features and fixes with their tasks, then other changes. */

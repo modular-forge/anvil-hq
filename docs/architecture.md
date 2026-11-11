@@ -34,10 +34,11 @@ Two consequences shape the code:
 | --- | --- | --- |
 | Entry | `bin/anvil.ts`, `src/cli.ts` | Parse arguments, pick the command, print, map errors to exit codes |
 | Commands | `store.ts`, `projects.ts`, `maintenance.ts`, `init.ts`, `briefing.ts`, `doctor.ts`, `migrate.ts` | One function per operation |
+| Releases | `release-git.ts` | Which done items a version has, from their evidence and the project's git history (`project release --ref`) |
 | Model | `types.ts`, `rules.ts`, `validate.ts`, `json-schema.ts` | The data model, status and closing rules, validation |
 | Files | `space.ts`, `item.ts`, `frontmatter.ts`, `registry.ts` | Reading a data space; parsing and writing items and `projects.json` |
 | System | `data-dir.ts`, `fsutil.ts`, `git.ts`, `errors.ts` | Finding the data space, safe writes, git, error types |
-| Server | `server/server.ts`, `server/security.ts`, `server/api.ts`, `server/events.ts`, `server/static.ts` | `anvil serve`: the board's HTTP server, API and change feed |
+| Server | `server/server.ts`, `server/security.ts`, `server/api.ts`, `server/writes.ts`, `server/push.ts`, `server/events.ts`, `server/static.ts` | `anvil serve`: the board's HTTP server, API and change feed |
 
 Commands never print and never call `process.exit`: they return a result, and `cli.ts` decides
 how to show it (`--json` or text). That keeps every command testable in-process.
@@ -147,7 +148,7 @@ command and commits the touched paths the same way, so the board can never write
 | `POST /api/items/<id>/steps` | `step add` |
 | `POST /api/items/<id>/steps/<n>` | `step check`, `uncheck` or `skip` (`action`) |
 | `POST /api/projects/<id>/journal` | `journal add` |
-| `POST /api/projects/<id>/release` | `project release` (`dryRun` for the preview) |
+| `POST /api/projects/<id>/release` | `project release` (`dryRun` for the preview; no `--ref` check, which needs the project's repository) |
 
 - Routes on an item need `If-Match` with the ETag the board last saw (`428` without it). If the
   file changed since, the answer is `409` with the current item under `current`, and nothing is

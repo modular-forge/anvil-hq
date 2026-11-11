@@ -197,12 +197,12 @@ const COMMANDS: Record<string, Command> = {
     print: (r) => `Created project ${r.id}; the idea is now ${r.item}${r.created.length ? `, plus ${r.created.length} starting item(s)` : ''}`,
   }),
   'project release': write<ReleaseResult & { out: string | undefined }>({
-    usage: 'project release <id> <version> [--exclude <item>]… [--out <file>] [--dry-run]',
-    summary: 'Mark the done items as released in a version and print the release notes',
+    usage: 'project release <id> <version> [--ref <tag|branch|commit>] [--exclude <item>]… [--out <file>] [--dry-run]',
+    summary: 'Mark the done items as released in a version and print the release notes; with --ref, inside the project\'s repository, only those whose PR or commit is in that ref',
     args: ['id', 'version'],
-    options: { exclude: { type: 'string', multiple: true }, out: { type: 'string' }, 'dry-run': { type: 'boolean', default: false } },
+    options: { ref: { type: 'string' }, exclude: { type: 'string', multiple: true }, out: { type: 'string' }, 'dry-run': { type: 'boolean', default: false } },
     run: runRelease,
-    print: (r) => `${r.dryRun ? 'Would release' : 'Released'} ${r.released.join(', ')} in ${r.version}${r.out ? `; notes written to ${r.out}` : `\n\n${r.notes}`}`,
+    print: (r) => `${releaseChecks(r)}${r.dryRun ? 'Would release' : 'Released'} ${r.released.join(', ')} in ${r.version}${r.out ? `; notes written to ${r.out}` : `\n\n${r.notes}`}`,
   }),
   'project set': write({
     usage: `project set <id> ${PROJECT_SETTABLE.map((f) => `[--${f} <value>]`).join(' ')}`,
@@ -511,14 +511,27 @@ function runSearch({ ctx, values, args, io }: Invocation & { ctx: Context }): nu
   return 0;
 }
 
-function runRelease({ ctx, values, args, now }: Invocation & { ctx: Context; now: Date }): ReleaseResult & { out: string | undefined } {
+function runRelease({ ctx, values, args, io, now }: Invocation & { ctx: Context; now: Date }): ReleaseResult & { out: string | undefined } {
   const outOption = str(values, 'out');
   const out = outOption ? resolve(outOption) : undefined;
   if (out && existsSync(out)) throw new AnvilError(`${out} already exists; anvil does not overwrite it (print the notes and paste them instead)`);
   const dryRun = bool(values, 'dry-run');
-  const result = releaseProject(ctx, arg(args, 'id'), arg(args, 'version'), { exclude: list(values, 'exclude'), dryRun }, now);
+  const ref = str(values, 'ref');
+  const result = releaseProject(ctx, arg(args, 'id'), arg(args, 'version'), {
+    exclude: list(values, 'exclude'), dryRun, ...(ref ? { git: { dir: io.cwd, ref } } : {}),
+  }, now);
   if (out && !dryRun) writeFileSync(out, `${result.notes}\n`, { flag: 'wx' });
   return { ...result, out: dryRun ? undefined : out };
+}
+
+const VERDICT_LABEL = { in: 'in this version', out: 'stays done', unverified: 'released by status' } as const;
+
+/** What git said about each item, before the summary; nothing without --ref. */
+function releaseChecks({ checks }: ReleaseResult): string {
+  if (!checks?.length) return '';
+  const width = Math.max(...checks.map((c) => c.id.length));
+  const lines = checks.map((c) => `  ${c.id.padEnd(width)}  ${VERDICT_LABEL[c.verdict].padEnd(18)}  ${c.detail}`);
+  return `${lines.join('\n')}\n\n`;
 }
 
 function runShow({ ctx, values, args, io }: Invocation & { ctx: Context }): number {
