@@ -135,7 +135,7 @@ function history(ctx: Context, id: string): ApiResponse {
  * Whether the data space is backed up: unpushed commits, uncommitted files, and `stale` when
  * the backup is far enough behind for the board to warn.
  */
-function gitStatus(dir: string, now: Date): ApiResponse {
+export function gitStatus(dir: string, now: Date): ApiResponse {
   if (!isRepository(dir)) {
     return { status: 200, body: { repository: false, upstream: false, unpushed: null, oldestUnpushed: null, uncommitted: [], stale: true } };
   }

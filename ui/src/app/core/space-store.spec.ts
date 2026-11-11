@@ -78,6 +78,28 @@ describe('SpaceStore', () => {
     expect(store.projects()).toEqual([]);
   });
 
+  it('pushes, takes the git status from the answer, and reads it again after a refusal', async () => {
+    sessionStorage.setItem(TOKEN_KEY, 'secret');
+    const store = TestBed.inject(SpaceStore);
+    const started = store.start();
+    await answer(space(), git({ unpushed: 3 }));
+    await started;
+
+    const pushed = store.push();
+    const request = http.expectOne('/api/git/push');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({});
+    request.flush({ pushed: 3, git: git() });
+    expect(await pushed).toBe(3);
+    expect(store.git()?.unpushed).toBe(0);
+
+    const refused = store.push();
+    http.expectOne('/api/git/push').flush({ error: 'the remote has commits this copy does not have' }, { status: 409, statusText: 'Conflict' });
+    await expect(refused).rejects.toMatchObject({ status: 409, message: 'the remote has commits this copy does not have' });
+    await answer(space(), git({ unpushed: 1 }));
+    expect(store.git()?.unpushed).toBe(1);
+  });
+
   it('locks when the server refuses the token', async () => {
     sessionStorage.setItem(TOKEN_KEY, 'secret');
     const store = TestBed.inject(SpaceStore);

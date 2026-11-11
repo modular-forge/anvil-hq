@@ -1,7 +1,7 @@
 // Git in the data space and in project repositories. git runs without a shell, with fixed
 // arguments, and commits only ever stage the paths an operation touched.
 
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { AnvilError } from './errors.ts';
 import { retry } from './fsutil.ts';
 import type { CommitResult } from './types.ts';
@@ -147,6 +147,63 @@ export function fileHistory(dir: string, file: string, limit = 50): HistoryEntry
   return out.split('\n').filter(Boolean).map((line) => {
     const [hash = '', date = '', subject = ''] = line.split('\x1f');
     return { hash, date, subject };
+  });
+}
+
+/** Longest a push may take before it is given up, so a stuck network never holds the board. */
+export const PUSH_TIMEOUT_MS = 60_000;
+
+/** Why a push did not happen: no upstream, the remote moved on, or git failed (network, auth). */
+export type PushFailure = 'no-upstream' | 'rejected' | 'failed';
+
+export type PushResult = { pushed: true; commits: number } | { pushed: false; failure: PushFailure; message: string };
+
+/**
+ * Pushes the current branch to its upstream, the only thing it ever pushes: never with force,
+ * never tags or other branches, and only when there is something to push. The remote and the
+ * branch come from the branch's own git config, and are passed as fixed arguments without a
+ * shell. Asynchronous, so the server keeps answering while the network works.
+ */
+export async function pushToUpstream(dir: string, timeout = PUSH_TIMEOUT_MS): Promise<PushResult> {
+  const branch = currentBranch(dir);
+  const remote = branch && configValue(dir, `branch.${branch}.remote`);
+  const merge = branch && configValue(dir, `branch.${branch}.merge`);
+  const commits = unpushedCount(dir);
+  if (!branch || !remote || !merge || commits === null || !SAFE_REMOTE.test(remote) || !merge.startsWith('refs/heads/')) {
+    return { pushed: false, failure: 'no-upstream', message: 'the branch has no upstream to push to; set one up with `git push -u origin main` first' };
+  }
+  if (commits === 0) return { pushed: true, commits: 0 };
+  try {
+    await run(dir, ['push', '--quiet', '--no-follow-tags', remote, `HEAD:${merge}`], timeout);
+    return { pushed: true, commits };
+  } catch (error) {
+    const failure = error as ExecError & { killed?: boolean };
+    const detail = String(failure.stderr || failure.message).trim();
+    if (/\[rejected\]|non-fast-forward|fetch first/.test(detail)) {
+      return { pushed: false, failure: 'rejected', message: 'the remote has commits this copy does not have; pull them in a terminal (`git pull --rebase`), then push again' };
+    }
+    const reason = failure.killed ? `no answer from the remote in ${Math.round(timeout / 1000)} s` : (detail.split('\n').filter(Boolean).at(-1) ?? 'unknown error');
+    return { pushed: false, failure: 'failed', message: `git could not push: ${reason}` };
+  }
+}
+
+/** A remote name git would accept and that cannot be taken for an option. */
+const SAFE_REMOTE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+function currentBranch(dir: string): string | null {
+  try {
+    return git(dir, ['symbolic-ref', '--quiet', '--short', 'HEAD']).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function run(dir: string, args: string[], timeout: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile('git', ['-C', dir, ...args], { encoding: 'utf8', timeout, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } }, (error, stdout, stderr) => {
+      if (error) reject(Object.assign(error, { stderr }));
+      else resolve(stdout);
+    });
   });
 }
 

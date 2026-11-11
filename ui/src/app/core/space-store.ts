@@ -74,6 +74,22 @@ export class SpaceStore {
     this.#poll = undefined;
   }
 
+  /**
+   * Pushes the data space and returns how many commits went up. A refusal (no upstream, a remote
+   * that moved on, no network) comes back as a WriteError with the server's explanation; the git
+   * status is read again either way, since the change feed does not see git's own files.
+   */
+  async push(): Promise<number> {
+    try {
+      const result = await this.#api.push();
+      this.#git.set(result.git);
+      return result.pushed;
+    } catch (error) {
+      void this.refresh();
+      throw error;
+    }
+  }
+
   /** Reads the space and the git status again. */
   async refresh(): Promise<void> {
     try {

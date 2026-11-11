@@ -9,6 +9,7 @@ import { AnvilError } from '../errors.ts';
 import { errorCode } from '../fsutil.ts';
 import { readRoute, type ApiResponse } from './api.ts';
 import { ChangeFeed } from './events.ts';
+import { Pusher } from './push.ts';
 import { writeRoute, type Body } from './writes.ts';
 import { SECURITY_HEADERS, checkApi, checkRequest, newToken, type Refusal } from './security.ts';
 import { staticFile } from './static.ts';
@@ -32,6 +33,8 @@ export interface ServerOptions {
   logError?: (error: unknown) => void;
   /** The clock for dates written to items and the journal (tests). */
   now?: () => Date;
+  /** How long a push from the board may take (tests); see PUSH_TIMEOUT_MS. */
+  pushTimeout?: number;
 }
 
 export interface RunningServer {
@@ -50,8 +53,10 @@ export async function startServer({
   watch = true,
   logError = (error) => console.error(error),
   now = () => new Date(),
+  pushTimeout,
 }: ServerOptions): Promise<RunningServer> {
   const feed = new ChangeFeed(dir, { watch });
+  const pusher = new Pusher(dir, pushTimeout);
   let actualPort = port;
 
   const server = createServer((req, res) => {
@@ -93,6 +98,10 @@ export async function startServer({
       if (method !== 'POST' && method !== 'PATCH') return refuse(res, req, { status: 405, message: `${method} is not supported here` });
       const body = await readBody(req);
       if ('status' in body) return refuse(res, req, body);
+      if (url.pathname === '/api/git/push') {
+        if (method !== 'POST') return refuse(res, req, { status: 405, message: `${method} is not supported here` });
+        return send(res, req, await pusher.push(body.json, now));
+      }
       const ifMatch = req.headers['if-match'];
       const response = writeRoute({ dir, method, pathname: url.pathname, body: body.json, ifMatch, now: now() });
       return send(res, req, response ?? { status: 404, body: { error: 'no such API route' } });

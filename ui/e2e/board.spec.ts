@@ -1,4 +1,6 @@
 import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { expect, test } from '@playwright/test';
 
@@ -61,4 +63,31 @@ test('shows changes made outside the board without a reload', async ({ page }) =
   await expect(backup).toBeVisible();
   await backup.click();
   await expect(page.getByRole('region', { name: 'Backup' })).toContainText('Add a private remote');
+});
+
+test('pushes the data space when asked, and only then', async ({ page }) => {
+  const data = process.env['ANVIL_E2E_DATA'] ?? '';
+  const git = (...args: string[]) => execFileSync('git', ['-C', data, ...args], { encoding: 'utf8' }).trim();
+  const remote = mkdtempSync(join(tmpdir(), 'anvil-e2e-remote-'));
+  execFileSync('git', ['init', '--quiet', '--bare', '--initial-branch=main', remote]);
+  git('remote', 'add', 'origin', remote);
+  git('push', '--quiet', '-u', 'origin', 'main');
+  try {
+    await page.goto(boardUrl());
+    anvil('journal', 'add', 'home-lab', 'Checked the UPS battery');
+    const pill = page.getByRole('button', { name: /1 not pushed/ });
+    await expect(pill).toBeVisible();
+    // Nothing goes up until the user presses Push.
+    expect(execFileSync('git', ['--git-dir', remote, 'rev-parse', 'main'], { encoding: 'utf8' }).trim()).not.toBe(git('rev-parse', 'HEAD'));
+
+    await pill.click();
+    await page.getByRole('region', { name: 'Backup' }).getByRole('button', { name: 'Push now' }).click();
+    await expect(pill).toHaveCount(0);
+    expect(execFileSync('git', ['--git-dir', remote, 'rev-parse', 'main'], { encoding: 'utf8' }).trim()).toBe(git('rev-parse', 'HEAD'));
+  } finally {
+    // The other tests expect a data space without a remote.
+    git('branch', '--unset-upstream');
+    git('remote', 'remove', 'origin');
+    rmSync(remote, { recursive: true, force: true });
+  }
 });

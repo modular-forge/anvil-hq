@@ -163,6 +163,19 @@ command and commits the touched paths the same way, so the board can never write
   while the body arrives; each operation then runs synchronously, so two board requests never
   interleave their writes.
 
+**Push** (`server/push.ts`, `pushToUpstream` in `git.ts`). `POST /api/git/push` with an empty
+body is the board's only way to reach the network, and it runs only when the user presses
+"Push now" in the backup panel. It pushes the current branch to the upstream named in the
+branch's own git config (`HEAD:<merge ref>`), never with force, never tags or other branches,
+with `GIT_TERMINAL_PROMPT=0` and a 60 s timeout. It runs asynchronously, so the server keeps
+answering meanwhile, and one at a time (`409` while another runs). It works while the space is
+read-only too, since it only sends commits that already exist. Answers: `200` with `pushed` (the
+number of commits) and the new git status; `422` without an upstream; `409` with
+`failure: "rejected"` when the remote has commits this copy does not (the board says to pull in a
+terminal and does not try to fix it); `502` when git fails (network, credentials). Every answer
+carries the git status, because the change feed ignores `.git/`. The CLI and the Claude Code
+plugin never push.
+
 **Changes on disk.** `GET /api/events` is an event stream fed by a recursive `fs.watch` of the
 data space (`server/events.ts`). It sends `hello` with `{ watching }` on connect, then `change`
 with the paths that changed, debounced. An empty `paths` list means "reload everything": Windows
