@@ -1,0 +1,52 @@
+@let it = item();
+@if (it.steps.length || !closed()) {
+  <section aria-labelledby="steps-title" class="steps">
+    <div class="section-head">
+      <h3 id="steps-title">Steps</h3>
+      @if (it.steps.length) {
+        <span class="mono count">{{ it.progress.done + it.progress.skipped }} of {{ it.progress.total }}</span>
+        <span class="segs" aria-hidden="true">
+          @for (seg of segments(); track $index) {
+            <span [class]="seg"></span>
+          }
+        </span>
+      }
+    </div>
+    <ul>
+      @for (step of it.steps; track step.index) {
+        <li class="step-row">
+          <button
+            type="button"
+            class="step"
+            role="checkbox"
+            [attr.aria-checked]="step.checked"
+            [disabled]="board.readOnly()"
+            [class.skipped]="step.skipped"
+            [class.pop]="popped() === step.index && step.checked"
+            (click)="toggle(step)"
+          >
+            <span class="box" aria-hidden="true">
+              @if (step.checked && !step.skipped) {
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+              }
+              @if (popped() === step.index && step.checked) {
+                <span class="spark"></span>
+              }
+            </span>
+            <span class="text">{{ step.text }}</span>
+          </button>
+          @if (!step.checked && !board.readOnly()) {
+            <button type="button" class="skip" (click)="board.skipStep(it, step)" [attr.aria-label]="'Skip step ' + step.index">Skip</button>
+          }
+        </li>
+      }
+    </ul>
+    @if (!board.readOnly() && !closed()) {
+      <form class="add" (submit)="$event.preventDefault(); add()">
+        <label class="sr-only" for="new-step">New step</label>
+        <input id="new-step" placeholder="Add a step" [ngModel]="newStep()" (ngModelChange)="newStep.set($event)" name="step" />
+        <button type="submit" [disabled]="!newStep().trim()">Add</button>
+      </form>
+    }
+  </section>
+}

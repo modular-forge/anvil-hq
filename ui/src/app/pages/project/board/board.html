@@ -16,16 +16,27 @@
         </svg>
         {{ info?.name }}<span class="count mono">{{ column.items.length }}</span>
       </h2>
+      @if (!column.items.length) {
+        @let empty = emptyText(column.status);
+        <p class="empty">
+          <span class="empty-title">{{ empty.title }}</span>
+          @if (empty.hint) {
+            <span class="empty-hint">{{ empty.hint }}</span>
+          }
+        </p>
+      }
       <ul class="cards">
         @for (item of column.items; track item.id) {
-          <li>
+          <li [style.view-transition-name]="transitionName(item.id)">
             <anv-card
               [item]="item"
               [parentTitle]="parentTitle(item)"
               [tasks]="tasks().get(item.id) ?? null"
               [selected]="board.selectedId() === item.id"
               [movable]="!board.readOnly()"
-              (opened)="board.onSelect(item.id)"
+              [landing]="board.landed()?.id === item.id ? (board.landed()?.status ?? null) : null"
+              [lifted]="dragging()?.id === item.id"
+              (opened)="open(item.id)"
               (step)="step(item, $event)"
               (dragStarted)="dragging.set(item)"
               (dragEnded)="endDrag()"
@@ -33,6 +44,17 @@
           </li>
         }
       </ul>
+      @if ((column.status === 'backlog' || column.status === 'todo') && !board.readOnly()) {
+        @if (adding() === column.status) {
+          <form class="add" (submit)="$event.preventDefault(); add(column.status)">
+            <label class="sr-only" [for]="'add-' + column.status">New task in {{ info?.name }}</label>
+            <input [id]="'add-' + column.status" name="title" placeholder="Task title" [ngModel]="draft()" (ngModelChange)="draft.set($event)" (keydown)="addKeydown($event)" />
+            <span class="add-hint">task · {{ info?.name }} · ↵ create · Esc close</span>
+          </form>
+        } @else {
+          <button type="button" class="add-button" (click)="openAdd(column.status)">+ Add to {{ info?.name }}</button>
+        }
+      }
     </section>
   }
 </div>

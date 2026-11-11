@@ -1,0 +1,43 @@
+@let it = item();
+@if (it.children.length || canAdd()) {
+  <section aria-labelledby="tasks-title" class="tasks">
+    <div class="section-head">
+      <h3 id="tasks-title">Tasks</h3>
+      @if (it.children.length) {
+        <span class="mono count">{{ closedCount() }} of {{ it.children.length }} closed</span>
+      }
+    </div>
+    <ul class="list">
+      @for (child of it.children; track child.id) {
+        <li>
+          <button type="button" class="task" [class.closed]="child.fields.status === 'done' || child.fields.status === 'released'" (click)="board.onSelect(child.id)">
+            <span class="status" [style.color]="'var(--st-' + child.fields.status + ')'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path [attr.d]="statuses[child.fields.status]?.icon" [attr.stroke-dasharray]="statuses[child.fields.status]?.dash || null" />
+              </svg>
+              {{ statusName(child.fields.status) }}
+            </span>
+            <span class="mono id">{{ child.id }}</span>
+            <span class="task-title">{{ child.fields.title }}</span>
+            @if (child.progress.total) {
+              <span class="mono steps">{{ child.progress.done + child.progress.skipped }}/{{ child.progress.total }}<span class="sr-only"> steps</span></span>
+            }
+          </button>
+        </li>
+      }
+      @if (canAdd()) {
+        <li>
+          @if (open()) {
+            <form class="add" (submit)="$event.preventDefault(); add()">
+              <label class="sr-only" for="new-task">New task in {{ it.id }}</label>
+              <input id="new-task" placeholder="Task title" [ngModel]="draft()" (ngModelChange)="draft.set($event)" name="task" (keydown.escape)="cancel($event)" />
+              <button type="submit" [disabled]="!draft().trim()">Add</button>
+            </form>
+          } @else {
+            <button type="button" class="add-task" (click)="open.set(true)">+ Add task to {{ it.id }}</button>
+          }
+        </li>
+      }
+    </ul>
+  </section>
+}

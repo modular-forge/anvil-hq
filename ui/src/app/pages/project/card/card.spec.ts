@@ -43,4 +43,16 @@ describe('Card', () => {
     expect(steps).toEqual([]);
     expect(button.draggable).toBe(false);
   });
+
+  it('lands with the effect of its new status, sparks included', async () => {
+    const { fixture, button } = await render();
+    fixture.componentRef.setInput('landing', 'done');
+    await fixture.whenStable();
+    expect([...button.classList]).toEqual(expect.arrayContaining(['land', 'temper']));
+    expect(button.querySelectorAll('.sparks span').length).toBe(4);
+    fixture.componentRef.setInput('landing', null);
+    await fixture.whenStable();
+    expect(button.classList).not.toContain('land');
+    expect(button.querySelector('.sparks')).toBeNull();
+  });
 });

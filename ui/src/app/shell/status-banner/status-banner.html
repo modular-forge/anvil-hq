@@ -1,0 +1,25 @@
+@if (offline()) {
+  <section class="banner" role="status" aria-labelledby="offline-title">
+    <span class="embers" aria-hidden="true"><span></span><span></span><span></span></span>
+    <div class="text">
+      <h2 id="offline-title" class="display">Lost the connection to anvil</h2>
+      <p>The local server stopped answering. The board retries every few seconds; your files are safe on disk. To start it again:</p>
+      <code class="mono">anvil serve</code>
+    </div>
+  </section>
+} @else if (readOnly()) {
+  <section class="banner" role="status" aria-labelledby="problems-title">
+    <div class="text">
+      <h2 id="problems-title" class="display">{{ count() }} {{ count() === 1 ? 'problem breaks' : 'problems break' }} the format</h2>
+      <p>The board is read-only until they are fixed, so nothing gets worse.</p>
+      @if (problems().length) {
+        <ul class="problems mono">
+          @for (problem of problems(); track $index) {
+            <li><span class="file">{{ problem.file }}</span><span class="message">{{ problem.message }}</span></li>
+          }
+        </ul>
+      }
+      <p class="hint">Run <span class="mono">anvil validate</span> for the full list.</p>
+    </div>
+  </section>
+}

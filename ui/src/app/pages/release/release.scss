@@ -1,0 +1,226 @@
+:host {
+  display: block;
+  max-width: 760px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line2);
+  border-radius: 16px;
+  background: var(--s1);
+}
+
+.card > h1,
+.card > .sub,
+.card > .notes,
+.card > .actions {
+  margin-inline: 22px;
+}
+
+h1 {
+  margin: 20px 22px 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.sub,
+.note {
+  margin: 0;
+  color: var(--tx2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.progress {
+  display: flex;
+  gap: 8px;
+  margin: 0 22px;
+  padding: 0;
+  list-style: none;
+}
+
+.progress li {
+  flex: 1;
+  padding-top: 8px;
+  border-top: 3px solid var(--line2);
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+.progress li.reached {
+  border-top-color: var(--hot1);
+}
+
+.progress li[aria-current='step'] {
+  color: var(--tx);
+  font-weight: 600;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 22px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 220px;
+}
+
+.cap {
+  color: var(--tx3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+input.mono {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line2);
+  border-radius: 9px;
+  background: var(--s2);
+  color: var(--tx);
+  font-size: 15px;
+}
+
+.suggest {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  background: var(--s2);
+  color: var(--tx2);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.problem {
+  margin: 0;
+  color: var(--st-blocked);
+  font-size: 13px;
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.items label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: var(--s2);
+  cursor: pointer;
+}
+
+.items label.off {
+  opacity: 0.55;
+}
+
+.items .mono,
+.kind,
+.evidence {
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+.title {
+  flex: 1;
+  min-width: 160px;
+}
+
+.notes {
+  margin: 0;
+  padding: 14px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--tx);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.copy,
+.actions button {
+  align-self: flex-start;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-m);
+  background: var(--s2);
+  color: var(--tx);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+footer,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+footer {
+  padding: 12px 22px;
+  border-top: 1px solid var(--line);
+  background: var(--s2);
+}
+
+.actions {
+  justify-content: flex-start;
+  margin-bottom: 22px;
+}
+
+footer .note {
+  margin-right: auto;
+  color: var(--tx3);
+}
+
+.ghost,
+.hot {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-m);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ghost {
+  background: transparent;
+  color: var(--tx2);
+  font-weight: 500;
+}
+
+.hot {
+  background: var(--hotbtn);
+  color: var(--hotink);
+}
+
+.hot:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}

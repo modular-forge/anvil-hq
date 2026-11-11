@@ -1,0 +1,21 @@
+@use '../section';
+
+.description {
+  @include section.stack;
+
+  p,
+  li {
+    margin: 0;
+    font-size: var(--body-size, 14px);
+    line-height: 1.6;
+  }
+
+  ul {
+    padding-left: 18px;
+    list-style: disc;
+  }
+}
+
+.mention {
+  @include section.text-link;
+}

@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { filter } from 'rxjs';
 import type { Project } from '../../core/models';
 import { SpaceStore } from '../../core/space-store';
 import { ThemeService } from '../../core/theme';
@@ -39,6 +41,17 @@ export class Sidebar {
   protected readonly store = inject(SpaceStore);
   protected readonly theme = inject(ThemeService);
   protected readonly groups = computed(() => groupProjects(this.store.projects()));
+  /** On narrow screens the menu folds away behind its button; it folds again after each navigation. */
+  protected readonly open = signal(false);
+
+  constructor() {
+    inject(Router)
+      .events.pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => this.open.set(false));
+  }
 
   protected doing(project: Project): boolean {
     return (project.counts['doing'] ?? 0) > 0;

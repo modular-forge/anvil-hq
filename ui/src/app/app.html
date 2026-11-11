@@ -7,15 +7,15 @@
     <div class="column">
       <anv-topbar />
       <main id="main" tabindex="-1">
-        @if (store.state() === 'offline') {
-          <p class="notice" role="status">
-            The board cannot reach <span class="mono">anvil serve</span>. Is it still running? It retries on its own.
-          </p>
-        }
+        <anv-status-banner />
         <router-outlet />
       </main>
     </div>
   </div>
   <anv-dialog-host />
   <anv-notices />
+  <anv-celebration />
+  <anv-shortcuts />
+  <anv-palette />
+  <anv-new-item />
 }

@@ -1,0 +1,106 @@
+@if (project(); as project) {
+  @if (published(); as done) {
+    <section class="card result" aria-labelledby="release-title">
+      <h1 id="release-title" class="display">Released v{{ done.version }}</h1>
+      <p class="sub">
+        {{ done.released.length }} item(s) moved to released ·
+        @if (done.commit; as commit) {
+          @if (commit.committed) {
+            committed <span class="mono">{{ commit.hash }}</span> · not pushed yet
+          } @else {
+            not committed: {{ commit.reason }}
+          }
+        }
+      </p>
+      <pre class="notes mono">{{ done.notes }}</pre>
+      <div class="actions">
+        <button type="button" (click)="copy(done.notes)">Copy notes</button>
+        <a class="hot" [routerLink]="['/projects', project.id]">Back to the board</a>
+      </div>
+    </section>
+  } @else if (project.release !== 'versioned') {
+    <h1 class="display">{{ project.name }} has no releases</h1>
+    <p class="sub">Its release mode is "none": finished work stays done. <a [routerLink]="['/projects', project.id]">Back to the board</a></p>
+  } @else {
+    <section class="card" aria-labelledby="release-title">
+      <h1 id="release-title" class="display">Publish a release · {{ project.name }}</h1>
+
+      <ol class="progress">
+        @for (label of steps; track label; let i = $index) {
+          <li [attr.aria-current]="step() === i + 1 ? 'step' : null" [class.reached]="step() >= i + 1">{{ i + 1 }} · {{ label }}</li>
+        }
+      </ol>
+
+      @switch (step()) {
+        @case (1) {
+          <div class="body">
+            <label class="field">
+              <span class="cap">Version</span>
+              <input class="mono" name="version" [ngModel]="version()" (ngModelChange)="version.set($event)" aria-describedby="version-help" />
+            </label>
+            <p id="version-help" class="sub">
+              {{ last() ? 'Last release v' + last() + ' · suggest' : 'First release · suggest' }}
+              @for (s of suggestions(); track s.kind) {
+                <button type="button" class="suggest" (click)="version.set(s.version)">{{ s.kind }} <span class="mono">{{ s.version }}</span></button>
+              }
+            </p>
+            @if (versionProblem(); as problem) {
+              <p class="problem" role="status">{{ problem }}</p>
+            }
+            <p class="sub">
+              Every task, feature and bug in done becomes released with this version. You can leave some out in the next step.
+              Decisions and ideas are never released.
+            </p>
+          </div>
+        }
+        @case (2) {
+          <div class="body">
+            <p class="sub">Done items. Untick what is not part of v{{ version() }}.</p>
+            @if (candidates().length) {
+              <ul class="items">
+                @for (item of candidates(); track item.id) {
+                  <li>
+                    <label [class.off]="excluded().has(item.id)">
+                      <input type="checkbox" [checked]="!excluded().has(item.id)" (change)="toggle(item.id)" />
+                      <span class="mono">{{ item.id }}</span>
+                      <span class="title">{{ item.fields.title }}</span>
+                      <span class="kind">{{ item.fields.kind }}</span>
+                      @if (item.fields.evidence) {
+                        <span class="evidence">{{ shortEvidence(item.fields.evidence) }}</span>
+                      }
+                    </label>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="problem">Nothing is done yet, so there is nothing to release.</p>
+            }
+          </div>
+        }
+        @case (3) {
+          <div class="body">
+            <p class="sub">Release notes, ready to paste into the changelog.</p>
+            <pre class="notes mono">{{ preview()?.notes }}</pre>
+            <button type="button" class="copy" (click)="copy(preview()?.notes ?? '')">Copy notes as Markdown</button>
+          </div>
+        }
+      }
+
+      <footer>
+        <span class="note">{{ chosen().length }} item(s) · one commit</span>
+        @if (step() > 1) {
+          <button type="button" class="ghost" (click)="back()">Back</button>
+        } @else {
+          <a class="ghost" [routerLink]="['/projects', project.id]">Cancel</a>
+        }
+        @if (step() < 3) {
+          <button type="button" class="hot" [disabled]="busy() || (step() === 1 ? !!versionProblem() : !chosen().length)" (click)="next()">
+            {{ step() === 1 ? 'Choose items' : 'Preview notes' }}
+          </button>
+        } @else {
+          <button type="button" class="hot" [disabled]="busy() || store.space()?.readOnly" (click)="publish()">Publish v{{ version() }}</button>
+        }
+      </footer>
+    </section>
+  }
+}

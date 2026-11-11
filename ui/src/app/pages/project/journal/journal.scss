@@ -1,0 +1,126 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-width: 760px;
+  padding: 16px 0 24px;
+}
+
+.compose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--s1);
+}
+
+.cap {
+  color: var(--tx3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+textarea {
+  min-height: 80px;
+  padding: 10px 12px;
+  border: 1px solid var(--line2);
+  border-radius: 9px;
+  background: var(--s2);
+  color: var(--tx);
+  font-size: 14px;
+  resize: vertical;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.note,
+.empty {
+  margin: 0;
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+button[type='submit'] {
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--hotbtn);
+  color: var(--hotink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button[type='submit']:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.key {
+  margin-left: 6px;
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.day h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.day h2 .mono {
+  color: var(--tx3);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+ol {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0 0 0 14px;
+  border-left: 2px solid var(--line);
+  list-style: none;
+}
+
+li {
+  display: flex;
+  gap: 12px;
+}
+
+.time {
+  flex: none;
+  width: 44px;
+  color: var(--tx3);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+li p {
+  margin: 0;
+  color: var(--tx);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.mention {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--hot2);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

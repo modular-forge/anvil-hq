@@ -1,0 +1,20 @@
+@if (blocks().length) {
+  <section aria-labelledby="desc-title" class="description">
+    <h3 id="desc-title" [class.sr-only]="hideHeading()">Description</h3>
+    @for (block of blocks(); track $index) {
+      @if (block.type === 'p') {
+        <p>
+          @for (part of block.parts; track $index) {@if ('id' in part) {<button type="button" class="mention mono" (click)="board.onSelect(part.id)">{{ part.id }}</button>} @else {{{ part.text }}}}
+        </p>
+      } @else {
+        <ul>
+          @for (entry of block.items; track $index) {
+            <li>
+              @for (part of entry; track $index) {@if ('id' in part) {<button type="button" class="mention mono" (click)="board.onSelect(part.id)">{{ part.id }}</button>} @else {{{ part.text }}}}
+            </li>
+          }
+        </ul>
+      }
+    }
+  </section>
+}

@@ -1,0 +1,176 @@
+@use '../section';
+
+.steps {
+  @include section.stack;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.count {
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+.segs {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  max-width: 260px;
+}
+
+.segs span {
+  flex: 1;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--line2);
+  transition: background-color 0.24s;
+}
+
+.segs .done {
+  background: var(--hotbtn);
+}
+
+.segs .skipped {
+  background: var(--s3);
+}
+
+.step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.step {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: transparent;
+  color: var(--tx);
+  text-align: left;
+  cursor: pointer;
+}
+
+.step:hover:not(:disabled) {
+  background: var(--s2);
+}
+
+.box {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--line2);
+  border-radius: 6px;
+  color: var(--hotink);
+}
+
+.step[aria-checked='true'] .box {
+  border: 0;
+  background: var(--hotbtn);
+}
+
+.step[aria-checked='true'] .text {
+  color: var(--tx3);
+}
+
+.step.skipped .box {
+  background: var(--s3);
+}
+
+.step.skipped .text {
+  text-decoration: line-through;
+}
+
+.text {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+// Step check (storyboard): the box pops, the tick draws in, a spark flies off.
+.pop .box {
+  animation: pop 0.18s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.pop .box svg path {
+  stroke-dasharray: 22;
+  animation: tick 0.18s ease-out;
+}
+
+.spark {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--hot2);
+  opacity: 0;
+  animation: spark 0.45s ease-out;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+
+  55% {
+    transform: scale(1.25);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes tick {
+  from {
+    stroke-dashoffset: 22;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes spark {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(9px, -11px);
+  }
+}
+
+.skip {
+  margin-top: 4px;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--tx3);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.skip:hover {
+  border-color: var(--line2);
+  color: var(--tx2);
+}
+
+.add {
+  @include section.add-form;
+}

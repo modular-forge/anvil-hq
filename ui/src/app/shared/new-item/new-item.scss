@@ -1,0 +1,191 @@
+dialog {
+  width: min(560px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--line2);
+  border-radius: 16px;
+  background: var(--s1);
+  color: var(--tx);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 45%);
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px 8px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.in {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tx3);
+  font-size: 13px;
+}
+
+.esc {
+  margin-left: auto;
+  padding: 1px 6px;
+  border: 1px solid var(--line2);
+  border-radius: 5px;
+  color: var(--tx3);
+  font-size: 11px;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 20px 18px;
+}
+
+fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+}
+
+.cap {
+  display: block;
+  margin-bottom: 6px;
+  padding: 0;
+  color: var(--tx3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-m);
+  background: var(--s2);
+  color: var(--tx2);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.segment.small {
+  height: 30px;
+  padding: 0 10px;
+}
+
+.segment.on {
+  border-color: var(--hot2);
+  background: color-mix(in srgb, var(--hot1) 14%, var(--s1));
+  color: var(--tx);
+}
+
+.segment:focus-within {
+  outline: 2px solid var(--hot2);
+  outline-offset: 2px;
+}
+
+// The radio is still there for keyboards and screen readers; the label is what you see.
+.segment input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+input:not([type='radio']),
+select,
+textarea {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--line2);
+  border-radius: 9px;
+  background: var(--s2);
+  color: var(--tx);
+  font-size: 14px;
+}
+
+.title {
+  font-size: 16px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  background: var(--s2);
+}
+
+.note {
+  margin-right: auto;
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+footer button {
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-m);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ghost {
+  background: transparent;
+  color: var(--tx2);
+  font-weight: 500;
+}
+
+.hot {
+  background: var(--hotbtn);
+  color: var(--hotink);
+}
+
+.key {
+  margin-left: 6px;
+  font-size: 11px;
+  opacity: 0.75;
+}

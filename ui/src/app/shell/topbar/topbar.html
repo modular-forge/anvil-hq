@@ -6,20 +6,47 @@
     <span class="here">{{ crumbs().here }}</span>
   </p>
 
-  <!-- The command palette and the new item dialog arrive with the board's views. -->
-  <button type="button" class="search" disabled title="Coming soon">
+  <button type="button" class="search" (click)="palette.open()">
     <anv-icon name="search" [size]="15" />
     <span class="label">Search or run a command</span>
     <span class="key mono">Ctrl K</span>
   </button>
 
   @if (backup(); as label) {
-    <span class="backup" [class.stale]="store.git()?.stale" role="status">
-      <anv-icon name="push" [size]="13" [strokeWidth]="2.2" />{{ label }}
-    </span>
+    @if (store.git()?.stale) {
+      <div class="backup-wrap">
+        <button type="button" class="backup stale" aria-controls="backup-panel" [attr.aria-expanded]="backupOpen()" (click)="backupOpen.set(!backupOpen())" (keydown.escape)="closeBackup($event)">
+          <anv-icon name="push" [size]="13" [strokeWidth]="2.2" />
+          @for (text of [label]; track text) {
+            <span class="drop">{{ text }}</span>
+          }
+          <span class="sr-only">, the backup is behind</span>
+        </button>
+        @if (backupOpen()) {
+          <div id="backup-panel" class="backup-panel" role="region" aria-label="Backup">
+            <anv-icon name="push" [size]="20" [strokeWidth]="2.2" />
+            <div>
+              <p class="panel-title">{{ backupTitle() }}</p>
+              <p>{{ backupText() }}</p>
+              @if (store.git()?.upstream && store.space()?.dir; as dir) {
+                <code class="mono">git -C "{{ dir }}" push</code>
+              }
+              <p class="note">The board never pushes for you.</p>
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <span class="backup" role="status">
+        <anv-icon name="push" [size]="13" [strokeWidth]="2.2" />
+        @for (text of [label]; track text) {
+          <span class="drop">{{ text }}</span>
+        }
+      </span>
+    }
   }
 
-  <button type="button" class="new" disabled title="Coming soon">
+  <button type="button" class="new" (click)="composer.open()">
     <anv-icon name="plus" [size]="14" [strokeWidth]="2.6" />New item<span class="key mono">N</span>
   </button>
 </header>

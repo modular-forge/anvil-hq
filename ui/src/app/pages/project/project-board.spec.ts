@@ -1,12 +1,13 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Api, WriteError, type StatusChange } from '../../core/api';
-import type { ItemDetail, ItemSummary, Space, WriteResult } from '../../core/models';
+import { Api, WriteError, type FieldChanges, type StatusChange } from '../../core/api';
+import type { ItemDetail, ItemSummary, NewItem, Space, WriteResult } from '../../core/models';
 import { SpaceStore } from '../../core/space-store';
 import { Dialogs, type DialogAnswer, type DialogRequest } from '../../shared/dialogs/dialogs';
 import { Notices } from '../../shared/notices/notices';
 import { detail, project, space, step, summary } from '../../testing';
-import { ProjectBoard, buildColumns, sortCards } from './project-board';
+import { Celebrations } from '../../shared/celebration/celebration';
+import { NO_FILTERS, ProjectBoard, buildColumns, filterChoices, matchesFilters, sortCards } from './project-board';
 
 describe('buildColumns', () => {
   it('puts live items in their column, high priority first, and cancelled only when asked', () => {
@@ -29,6 +30,26 @@ describe('buildColumns', () => {
   });
 });
 
+describe('filters', () => {
+  const items = [
+    summary('AB-1', { kind: 'bug', priority: 'high', labels: ['ui', 'forms'] }),
+    summary('AB-2', { kind: 'task', labels: ['api'] }),
+    { ...summary('AB-3', { kind: 'idea', labels: ['old'] }), archived: true },
+  ];
+
+  it('matches kind, label and priority, with "none" for items without a priority', () => {
+    expect(items.filter((i) => matchesFilters(i, NO_FILTERS)).length).toBe(3);
+    expect(items.filter((i) => matchesFilters(i, { ...NO_FILTERS, kind: 'bug' })).map((i) => i.id)).toEqual(['AB-1']);
+    expect(items.filter((i) => matchesFilters(i, { ...NO_FILTERS, label: 'api' })).map((i) => i.id)).toEqual(['AB-2']);
+    expect(items.filter((i) => matchesFilters(i, { ...NO_FILTERS, priority: 'none' })).map((i) => i.id)).toEqual(['AB-2', 'AB-3']);
+    expect(items.filter((i) => matchesFilters(i, { kind: 'bug', label: 'api', priority: null }))).toEqual([]);
+  });
+
+  it('offers the kinds and labels of live items, sorted', () => {
+    expect(filterChoices(items)).toEqual({ kinds: ['bug', 'task'], labels: ['api', 'forms', 'ui'] });
+  });
+});
+
 describe('ProjectBoard', () => {
   let answers: (DialogAnswer | null)[];
   let opened: DialogRequest[];
@@ -37,6 +58,9 @@ describe('ProjectBoard', () => {
   let hint: string | null;
   let items: ItemSummary[];
   let details: Record<string, ItemDetail>;
+  let patches: { id: string; changes: FieldChanges }[];
+  let created: NewItem[];
+  let returned: ItemDetail | null;
   const spaceSignal = signal<Space | null>(space());
 
   beforeEach(() => {
@@ -47,6 +71,9 @@ describe('ProjectBoard', () => {
     hint = null;
     items = [summary('AB-1', { kind: 'feature', status: 'doing' }), summary('AB-2', { parent: 'AB-1', status: 'doing' })];
     details = {};
+    patches = [];
+    created = [];
+    returned = null;
     spaceSignal.set(space());
     TestBed.configureTestingModule({
       providers: [
@@ -60,7 +87,15 @@ describe('ProjectBoard', () => {
             setStatus: (item: { id: string }, change: StatusChange): Promise<WriteResult> => {
               if (refuse) return Promise.reject(refuse);
               writes.push({ id: item.id, change });
-              return Promise.resolve({ message: 'ok', hint, commit: null, item: null });
+              return Promise.resolve({ message: 'ok', hint, commit: null, item: returned });
+            },
+            setFields: (item: { id: string }, changes: FieldChanges): Promise<WriteResult> => {
+              patches.push({ id: item.id, changes });
+              return Promise.resolve({ message: 'ok', commit: null, item: null });
+            },
+            createItem: (item: NewItem) => {
+              created.push(item);
+              return Promise.resolve({ id: 'AB-9', message: 'ok', commit: null, item: null });
             },
           },
         },
@@ -165,5 +200,45 @@ describe('ProjectBoard', () => {
     refuse = new WriteError('AB-2 cannot be done: 1 unchecked step(s)', 422);
     expect(await b.move(summary('AB-2'), 'todo')).toBe(false);
     expect(TestBed.inject(Notices).error()).toBe('AB-2 cannot be done: 1 unchecked step(s)');
+  });
+
+  it('filters the columns, and lists what the filters can choose', async () => {
+    const b = await board();
+    items = [summary('AB-1', { kind: 'feature', status: 'doing' }), summary('AB-2', { status: 'doing', labels: ['ui'] })];
+    await b.load();
+    b.filters.set({ ...NO_FILTERS, label: 'ui' });
+    expect(b.filtering()).toBe(true);
+    expect(b.columns().find((c) => c.status === 'doing')?.items.map((i) => i.id)).toEqual(['AB-2']);
+    expect(b.choices()).toEqual({ kinds: ['feature', 'task'], labels: ['ui'] });
+  });
+
+  it('saves fields and adds tasks, except while read-only', async () => {
+    const b = await board();
+    const item = detail('AB-1', { kind: 'feature' });
+    expect(await b.setFields(item, { priority: 'high' }, 'Priority set')).toBe(true);
+    expect(patches).toEqual([{ id: 'AB-1', changes: { priority: 'high' } }]);
+    expect(await b.addTask(item, '  Write the docs ')).toBe(true);
+    expect(created).toEqual([{ project: 'alpha', kind: 'task', title: 'Write the docs', parent: 'AB-1' }]);
+    spaceSignal.set(space({ readOnly: true }));
+    expect(await b.setFields(item, { priority: 'low' }, 'x')).toBe(false);
+    expect(await b.addTask(item, 'More')).toBe(false);
+    expect(patches.length).toBe(1);
+    expect(created.length).toBe(1);
+  });
+
+  it('lands the moved card with its new status, and strikes the anvil when a feature is done', async () => {
+    const b = await board();
+    const played: unknown[] = [];
+    vi.spyOn(TestBed.inject(Celebrations), 'play').mockImplementation((c) => void played.push(c));
+    returned = detail('AB-2', { status: 'todo' });
+    expect(await b.move(items[1] as ItemSummary, 'todo')).toBe(true);
+    expect(b.landed()).toEqual({ id: 'AB-2', status: 'todo' });
+    expect(played).toEqual([]);
+
+    returned = detail('AB-1', { kind: 'feature', status: 'done' });
+    details['AB-1'] = detail('AB-1', { kind: 'feature' });
+    answers.push({ value: '' });
+    expect(await b.move(items[0] as ItemSummary, 'done')).toBe(true);
+    expect(played).toEqual([{ kind: 'forge', label: 'AB-1 forged' }]);
   });
 });

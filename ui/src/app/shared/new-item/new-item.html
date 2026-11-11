@@ -1,0 +1,96 @@
+<dialog #dialog aria-labelledby="new-item-title" (cancel)="$event.preventDefault(); cancel()">
+  @if (composer.request()) {
+    <form (submit)="$event.preventDefault(); create()" (keydown)="keydown($event)">
+      <header>
+        <h2 id="new-item-title" class="display">New item</h2>
+        <label class="in">
+          in
+          <select name="project" [ngModel]="project()" (ngModelChange)="project.set($event)">
+            @for (p of store.projects(); track p.id) {
+              <option [value]="p.id">{{ p.prefix }} · {{ p.name }}</option>
+            }
+          </select>
+        </label>
+        <span class="esc mono" aria-hidden="true">Esc</span>
+      </header>
+
+      <div class="body">
+        <fieldset>
+          <legend class="sr-only">Kind</legend>
+          <div class="segments">
+            @for (k of kinds; track k) {
+              <label class="segment" [class.on]="kind() === k">
+                <input type="radio" name="kind" [value]="k" [checked]="kind() === k" (change)="kind.set(k)" />
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path [attr.d]="kindIcons[k]" />
+                </svg>
+                {{ k[0]?.toUpperCase() + k.slice(1) }}
+              </label>
+            }
+          </div>
+        </fieldset>
+
+        <label class="field">
+          <span class="sr-only">Title</span>
+          <input #titleInput class="title" name="title" placeholder="What needs doing?" required [ngModel]="title()" (ngModelChange)="title.set($event)" />
+        </label>
+
+        <div class="row">
+          <fieldset>
+            <legend class="cap">Starts as</legend>
+            <div class="segments">
+              @for (s of starts; track s.value) {
+                <label class="segment small" [class.on]="status() === s.value">
+                  <input type="radio" name="status" [value]="s.value" [checked]="status() === s.value" (change)="status.set(s.value)" />{{ s.label }}
+                </label>
+              }
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend class="cap">Priority</legend>
+            <div class="segments">
+              @for (p of priorities; track p.value) {
+                <label class="segment small" [class.on]="priority() === p.value">
+                  <input type="radio" name="priority" [value]="p.value" [checked]="priority() === p.value" (change)="priority.set(p.value)" />
+                  @if (p.value) {
+                    {{ p.label }}
+                  } @else {
+                    <span aria-hidden="true">—</span><span class="sr-only">None</span>
+                  }
+                </label>
+              }
+            </div>
+          </fieldset>
+        </div>
+
+        @if (kind() === 'task') {
+          <label class="field">
+            <span class="cap">Parent feature or bug</span>
+            <select name="parent" [ngModel]="parent()" (ngModelChange)="parent.set($event)">
+              <option value="">None (maintenance)</option>
+              @for (p of parents(); track p.id) {
+                <option [value]="p.id">{{ p.id }} · {{ p.fields.title }}</option>
+              }
+            </select>
+          </label>
+        }
+
+        <label class="field">
+          <span class="cap">Labels · comma-separated</span>
+          <input name="labels" placeholder="ui, forms" [ngModel]="labels()" (ngModelChange)="labels.set($event)" />
+        </label>
+
+        <label class="field">
+          <span class="cap">Steps · optional, one per line</span>
+          <textarea name="steps" rows="3" [ngModel]="steps()" (ngModelChange)="steps.set($event)"></textarea>
+        </label>
+      </div>
+
+      <footer>
+        <span class="note">Creates the next <span class="mono">{{ prefix() }}</span> item as a {{ kind() }} · one commit</span>
+        <button type="button" class="ghost" (click)="cancel()">Cancel</button>
+        <button type="submit" class="hot" [disabled]="!canCreate()">Create <span class="mono key">Ctrl Enter</span></button>
+      </footer>
+    </form>
+  }
+</dialog>

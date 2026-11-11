@@ -133,6 +133,49 @@
           </footer>
         </form>
       }
+      @case ('promote') {
+        <form (submit)="$event.preventDefault(); promoteReady() && answer(stringify(newProject()))">
+          <p class="cap">Idea → project</p>
+          <h2 id="dialog-title" class="display">New project from <span class="mono">{{ r.item.id }}</span></h2>
+          <div class="body">
+            <div class="pair">
+              <label>
+                <span class="label">Project id</span>
+                <input name="id" [ngModel]="newProject().id" (ngModelChange)="setProject('id', $event)" pattern="[a-z0-9][a-z0-9-]*" required />
+              </label>
+              <label class="narrow">
+                <span class="label">Prefix</span>
+                <input class="mono" name="prefix" maxlength="4" [ngModel]="newProject().prefix" (ngModelChange)="setProject('prefix', $event)" required />
+              </label>
+            </div>
+            <div class="pair">
+              <label>
+                <span class="label">Kind</span>
+                <select name="kind" [ngModel]="newProject().kind" (ngModelChange)="setProject('kind', $event)">
+                  @for (k of projectKinds; track k) {
+                    <option [value]="k">{{ k }}</option>
+                  }
+                </select>
+              </label>
+              <label>
+                <span class="label">Releases</span>
+                <select name="release" [ngModel]="newProject().release" (ngModelChange)="setProject('release', $event)">
+                  <option value="none">none</option>
+                  <option value="versioned">versioned</option>
+                </select>
+              </label>
+            </div>
+            <p class="note">
+              State <b>idea</b> · the note becomes <span class="mono">{{ newProject().prefix || '??' }}-1</span> · starting items from
+              the {{ newProject().kind }} template
+            </p>
+          </div>
+          <footer>
+            <button type="button" class="ghost" (click)="dismiss()">Cancel</button>
+            <button type="submit" class="hot" [disabled]="!promoteReady()">Create project</button>
+          </footer>
+        </form>
+      }
       @case ('conflict') {
         <p class="cap">Changed on disk</p>
         <h2 id="dialog-title" class="display"><span class="mono">{{ r.id }}</span> was changed elsewhere</h2>

@@ -25,6 +25,10 @@
   --glow: rgb(201 80 10 / 30%);
   --steel: #4c525c;
   --brushed: rgb(0 0 0 / 2.5%);
+  --spark: #e07b12;
+  --wood: #8b5a2b;
+  --brass: #b8892f;
+  --brass-ink: #3b2a0c;
 
   color-scheme: light;
 }
@@ -54,6 +58,19 @@
   --glow: rgb(255 122 26 / 45%);
   --steel: #aab0ba;
   --brushed: rgb(255 255 255 / 1.8%);
+  --spark: #ffc266;
+  --wood: #8b5a2b;
+  --brass: #d9ae5b;
+  --brass-ink: #4a3612;
+
+  // Motion (storyboard, tuned slower for the cards): small interactions 150-250 ms, a card
+  // changing status about a second, celebrations at most 1.2 s.
+  --ease-spring: cubic-bezier(0.3, 1.4, 0.5, 1);
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --open-duration: 0.34s;
+  --glide-duration: 0.5s;
+  --land-duration: 0.42s;
+  --effect-duration: 1s;
 
   // Typography and shape.
   --font-ui: 'Inter Variable', system-ui, sans-serif;
@@ -133,6 +150,49 @@ textarea {
   border: 0;
 }
 
+// View transitions (see core/motion.ts): a moved card glides to its column; an opened item
+// grows out of its card.
+::view-transition-group(*) {
+  animation-duration: var(--open-duration);
+  animation-timing-function: var(--ease-out);
+}
+
+::view-transition-group(gliding) {
+  animation-duration: var(--glide-duration);
+}
+
+// The rest of the page changes at once: no ghosting crossfade of the whole board.
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+// The panel slides in as one piece while the card grows into its header ('opening'), and
+// slides out when it closes.
+::view-transition-new(detail-panel):only-child {
+  animation: vt-panel-in var(--open-duration) var(--ease-out);
+}
+
+::view-transition-old(detail-panel):only-child {
+  animation: vt-panel-out 0.22s ease-in both;
+}
+
+@keyframes vt-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+
+@keyframes vt-panel-out {
+  to {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+
+// Reduced motion: no movement anywhere. Components also drop their own animations, so nothing
+// relies on this rule alone.
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

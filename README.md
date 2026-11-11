@@ -5,9 +5,8 @@ features, bugs, decisions and ideas live as JSON and Markdown files in a git rep
 own, so every change has history and a backup. The `anvil` command reads and writes them, a local
 web board shows them, and Claude Code sessions share the same state through it.
 
-> **Status:** early development. The CLI works and `anvil serve` opens the local board: each
-> project's board, with items moved by dragging or from the keyboard, and their details. Home,
-> Inbox, General, the journal and the Claude Code integration are not built yet.
+> **Status:** early development. The CLI works and `anvil serve` opens the local board. The
+> Claude Code integration is not built yet.
 
 ## Requirements
 
@@ -92,7 +91,7 @@ anvil serve                                               # local board on http:
 
 `anvil serve` prints the board's address with a private token after `#token=`. Open that exact
 URL; keep it to yourself. The server only listens on 127.0.0.1 and refuses requests from other
-sites (see [docs/architecture.md](docs/architecture.md#the-local-server)).
+sites: [SECURITY.md](SECURITY.md) explains what it protects against and what it does not.
 
 `anvil doctor` checks the format, the git identity, unpushed commits, the pre-commit hook of your
 anvil-hq clone and, through the [GitHub CLI](https://cli.github.com/) (`gh`) if installed, that
@@ -101,6 +100,30 @@ your data repository is private.
 Every command accepts `--json`. Commands that change data validate the result first, write it
 atomically and commit only the files they touched to the data space's git repository. Run
 `anvil <command> --help` for the options of each command.
+
+## The board
+
+`anvil serve` opens a local web board over the same files, in a dark or light theme:
+
+- **Home**: what is in doing or blocked across every project, the inbox waiting, and every
+  project by state with its counts.
+- **A project's board**: a column per status, cards you drag or move with Shift ← →, filters by
+  kind, label and priority, and the selected item in a panel beside it. The **Journal** tab
+  holds the project's notes.
+- **An item's page**: its description, steps, tasks and history, with its fields edited in place.
+- **Inbox** (ideas and problems waiting for a project), **General** (decisions for every
+  project), **Publish release** (pick the done items, preview the notes, publish).
+- **New item** (N) and the **command palette** (Ctrl K) from anywhere.
+
+Every change goes through the same rules as the CLI and is committed the same way. What a move
+needs (a reason, evidence) is asked for in a dialog, and the board refuses what the CLI would
+refuse, with the same message. If a file changes on disk meanwhile (you edited it, or Claude
+did), the board shows the difference instead of overwriting it. While the data space does not
+validate, the board is read-only and lists the problems.
+
+Keyboard: Ctrl K palette, N new item, G H Home, G I Inbox, J / K next and previous card, Enter
+open, Shift ← → move, E edit the title, Esc close, and ? for the full list. Animations are short
+and never in the way; with your system's "reduce motion" setting they are turned off.
 
 ## Your data
 

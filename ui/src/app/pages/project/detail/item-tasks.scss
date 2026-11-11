@@ -1,0 +1,93 @@
+@use '../section';
+
+.tasks {
+  @include section.stack;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.count {
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+.list {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--tx);
+  text-align: left;
+  cursor: pointer;
+}
+
+.task:hover {
+  background: var(--s2);
+}
+
+.status {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  width: 86px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.id,
+.steps {
+  flex: none;
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+.task-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.closed .task-title {
+  color: var(--tx3);
+  text-decoration: line-through;
+}
+
+.add-task {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--tx2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.add-task:hover {
+  background: var(--s2);
+  color: var(--tx);
+}
+
+.add {
+  @include section.add-form;
+
+  padding: 6px 8px;
+}

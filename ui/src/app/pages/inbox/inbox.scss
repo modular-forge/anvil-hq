@@ -1,0 +1,233 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 880px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.sub,
+.empty,
+.note {
+  margin: 4px 0 0;
+  color: var(--tx3);
+  font-size: 13px;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.tabs button {
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--tx2);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tabs button[aria-pressed='true'] {
+  background: var(--s3);
+  color: var(--tx);
+  font-weight: 600;
+}
+
+.tabs .mono {
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+.board-link {
+  color: var(--hot2);
+  font-size: 13px;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--s1);
+}
+
+.row.open {
+  border-color: var(--line2);
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--tx);
+  text-align: left;
+  cursor: pointer;
+}
+
+.id,
+.age {
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+.problem {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--st-blocked) 14%, transparent);
+  color: var(--st-blocked);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.title {
+  flex-basis: 100%;
+  font-weight: 500;
+}
+
+// Opening a row: the details drop in under it (design: Inbox).
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 11px 11px;
+  background: var(--s2);
+  animation: drop 0.26s var(--ease-out);
+  color: var(--tx2);
+  font-size: 14px;
+}
+
+.details p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.bullets {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.actions button {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-m);
+  background: var(--s2);
+  color: var(--tx);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.actions .danger {
+  border-color: color-mix(in srgb, var(--st-blocked) 60%, var(--line2));
+  color: var(--st-blocked);
+}
+
+.actions .ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--tx2);
+}
+
+.actions .hot {
+  border: 0;
+  background: var(--hotbtn);
+  color: var(--hotink);
+  font-weight: 600;
+}
+
+.actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.chooser {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.chooser legend {
+  padding: 0 4px;
+  color: var(--tx);
+  font-weight: 600;
+}
+
+.target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line2);
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.target.on {
+  border-color: var(--hot2);
+  background: color-mix(in srgb, var(--hot1) 12%, var(--s1));
+  color: var(--tx);
+}
+
+.target:focus-within {
+  outline: 2px solid var(--hot2);
+  outline-offset: 2px;
+}
+
+.target input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .details {
+    animation: none;
+  }
+}

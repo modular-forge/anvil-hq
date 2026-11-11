@@ -184,11 +184,15 @@ licence texts ship with CRLF), so the output has the same bytes on every system.
 - `core/`: the API client (`api.ts`, which adds the token header), the change feed
   (`change-feed.ts`, Server-Sent Events read with `fetch`), the store (`space-store.ts`: the
   space overview and git status as signals, refreshed on each change, polling every 5 seconds
-  when the feed says it cannot watch), the token (`token.ts`) and the theme (`theme.ts`).
-- `shell/`: the sidebar, the top bar, and the locked screen shown without a valid token.
-- `shared/`: icons (the design's own SVG paths, no icon package), the logo, the dialogs and the
-  notices (screen reader announcements and visible errors).
-- `pages/`: one folder per route, lazy-loaded. `pages/project/` holds the board.
+  when the feed says it cannot watch), the token (`token.ts`), the theme (`theme.ts`) and motion
+  (`motion.ts`, view transitions).
+- `shell/`: the sidebar (folded behind a Menu button on narrow screens), the top bar, the status
+  banner (server not answering, or read-only with the problems) and the locked screen.
+- `shared/`: icons (the design's own SVG paths, no icon package), the logo and the anvil
+  drawing, the dialogs, the notices (screen reader announcements and visible errors), empty
+  states, loading skeletons, celebrations and the shortcuts list.
+- `pages/`: one folder per route, lazy-loaded. `pages/project/` holds the board, and the item
+  parts (steps, description, tasks, history) that the panel and the item page share.
 
 **The project board.** One column per status (cancelled on demand), a card per item, and the
 selected item (`?item=AB-1` in the URL, so a reload keeps it) in a panel beside the board.
@@ -210,7 +214,64 @@ selected item (`?item=AB-1` in the URL, so a reload keeps it) in a panel beside 
 - **Conflicts.** A `409` opens the "changed on disk" dialog with the differences between the
   item the board had and the one on disk (`itemDiff`), then reloads. Nothing was overwritten.
 - **Read-only.** While the data space does not validate, cards cannot be dragged, the panel's
-  controls are disabled and a notice says why.
+  controls are disabled and the status banner lists the first problems and says to run
+  `anvil validate`.
+- **Filters** by kind, label and priority (`none` for items without one) live in the URL
+  (`?kind=bug&label=ui`), so a filtered board survives a reload and Back undoes a change.
+
+**The item page** (`/items/<id>`, from the panel's "Open full page" button or E): the
+description, steps, tasks (with "+ Add task") and history as an article, and beside it the
+status, the editable fields (title with E, priority, kind and labels, through `PATCH`), parent,
+related items, links (only `http(s)` ones become anchors), dates and file, a "not ready to
+close" note listing what is still open, and the actions. It reuses `ProjectBoard` for the item
+and its project, so every change goes through the same queue and dialogs as the board.
+
+**The other views.**
+
+- **Home** (`pages/home/`): "Now", the doing and blocked items of every project; the inbox
+  waiting; every project by state with its counts, last release, Notion link (https only) and
+  repositories.
+- **Inbox** (`pages/inbox/`): items with no project yet, filtered into problems (label
+  `problem`, or a bug) and ideas. Each one moves to a project, becomes a project of its own
+  (`project promote`, from the "Idea → project" dialog) or is let go (cancelled with a reason).
+- **General** (`pages/general/`): decisions newest first, with their state derived from the
+  file (superseded, in force when done, discussing while open) and a jump to the one that
+  replaced another.
+- **Journal** (the project page with `?view=journal`): today's note, saved with Ctrl Enter, and
+  the latest 14 days, entries split on their `## HH:MM` headings, mentions linked.
+- **Publish release** (`/projects/<id>/release`): version (suggested from the last one), the
+  done items it includes, then the notes the server builds with a dry run; publishing is one
+  commit, and the notes can be copied.
+- **New item** (`shared/new-item/`, the N key or the top bar) and **quick add** at the foot of
+  Backlog and Todo; the **command palette** (`shared/palette/`, Ctrl K) searches items,
+  projects and journal notes through `/api/search` and runs the board's actions.
+
+**States.** Every place says what happened and the one next step: empty columns say how a card
+gets there (or that the filters hide everything), Home without projects and the empty inbox
+show the anvil, loading shows skeletons only after 300 ms (most loads come straight from local
+files), a token the restarted server no longer accepts gets its own locked screen, and the stale
+backup pill opens the details and the `git push` to run.
+
+**Motion** follows the design's storyboard: small interactions of 150 to 250 ms, a card changing
+status about a second (slower than the storyboard, by choice), celebrations of at most 1.2 s,
+and nothing ever waits for an animation. The durations are tokens in `styles.scss`
+(`--open-duration`, `--glide-duration`, `--land-duration`, `--effect-duration`). A moved card
+glides to its column with the View Transitions API (`Motion.transition`; only that card is named
+in the transition, so the others stay clipped in their columns) and lands with a squash and a
+few sparks, then the status's own effect: it warms up for doing (and keeps breathing), rusts for
+blocked, and a metallic sheen crosses it for done. Opening an item slides the panel in as one
+piece while the card grows into the panel's header (`Motion.share`, which waits briefly for the
+item to load); closing slides it out. The rest of the page changes at once, without a
+crossfade. A checked step pops, the palette springs in, the unpushed count drops into
+place. Closing a feature or bug strikes the anvil, and publishing a release stamps an ingot with
+its version (`shared/celebration/`, decorative and `aria-hidden`: the notice already announced
+it). With `prefers-reduced-motion`, view transitions and celebrations are skipped and every
+component drops its own animations; the doing glow stays lit without pulsing.
+
+**Keyboard.** Ctrl K palette, N new item, G H Home, G I Inbox, ? the list of shortcuts; on a
+board J and K walk the cards, Enter opens one, Shift ← → moves it; E edits the title on the item
+page and opens it from the panel. Shortcuts never fire while a field has the keyboard or a dialog
+is open.
 
 Dialogs use the native modal `<dialog>`: the browser traps the focus, makes the page behind it
 inert and closes it with Escape. Item bodies are shown as paragraphs and lists built from data,

@@ -1,0 +1,93 @@
+<header class="head">
+  <h1 class="display">Inbox</h1>
+  <p class="sub">Ideas and problems that have no project yet. Move them to one, turn them into a project, or let them go.</p>
+</header>
+
+<div class="bar">
+  <div role="group" aria-label="Show" class="tabs">
+    @for (tab of tabs(); track tab.key) {
+      <button type="button" [attr.aria-pressed]="filter() === tab.key" (click)="filter.set(tab.key)">
+        {{ tab.label }} <span class="mono">{{ tab.count }}</span>
+      </button>
+    }
+  </div>
+  <a class="board-link" routerLink="/projects/inbox">Open as a board</a>
+</div>
+
+@if (shown().length) {
+  <ul class="rows">
+    @for (item of shown(); track item.id) {
+      <li class="row" [class.open]="open() === item.id">
+        <button type="button" class="summary" [attr.aria-expanded]="open() === item.id" [attr.aria-controls]="'inbox-' + item.id" (click)="toggle(item)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" [attr.stroke]="isProblem(item) ? 'var(--st-blocked)' : 'var(--hot2)'" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3c1 3 4 5 4 9a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 0-8z" />
+          </svg>
+          <span class="mono id">{{ item.id }}</span>
+          @if (isProblem(item)) {
+            <span class="problem">problem</span>
+          }
+          <span class="age">· {{ age(item) }}</span>
+          <span class="title">{{ item.fields.title }}</span>
+        </button>
+        @if (open() === item.id) {
+          <div class="details" [id]="'inbox-' + item.id">
+            @for (block of blocks(item.id); track $index) {
+              @if (block.type === 'p') {
+                <p>
+                  @for (part of block.parts; track $index) {
+                    @if ('text' in part) {
+                      {{ part.text }}
+                    }
+                  }
+                </p>
+              } @else {
+                <ul class="bullets">
+                  @for (entry of block.items; track $index) {
+                    <li>
+                      @for (part of entry; track $index) {
+                        @if ('text' in part) {
+                          {{ part.text }}
+                        }
+                      }
+                    </li>
+                  }
+                </ul>
+              }
+            }
+
+            @if (!readOnly()) {
+              @if (moving() === item.id) {
+                <fieldset class="chooser">
+                  <legend>Move {{ item.id }} to</legend>
+                  @for (p of targets(); track p.id) {
+                    <label class="target" [class.on]="target() === p.id">
+                      <input type="radio" [name]="'target-' + item.id" [value]="p.id" [checked]="target() === p.id" (change)="target.set(p.id)" />
+                      <span class="mono">{{ p.prefix }}</span> {{ p.name }}
+                    </label>
+                  }
+                  <p class="note">Gets the next id of that project · {{ item.id }} kept as an alias</p>
+                  <div class="actions">
+                    <button type="button" class="ghost" (click)="moving.set(null)">Cancel</button>
+                    <button type="button" class="hot" [disabled]="!target()" (click)="move(item)">
+                      Move to {{ store.project(target())?.name }}
+                    </button>
+                  </div>
+                </fieldset>
+              } @else {
+                <div class="actions">
+                  <button type="button" (click)="startMove(item)">Move to…</button>
+                  <button type="button" (click)="promote(item)">New project</button>
+                  <button type="button" class="danger" (click)="letGo(item)">Let go…</button>
+                </div>
+              }
+            }
+          </div>
+        }
+      </li>
+    }
+  </ul>
+} @else {
+  <anv-empty heading="Inbox clear" art="still">
+    Every idea has found a project or been let go. New ones land here: press <kbd class="mono">N</kbd> from anywhere.
+  </anv-empty>
+}

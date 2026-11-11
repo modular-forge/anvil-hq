@@ -1,9 +1,10 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { App } from './app';
 import type { LoadState } from './core/space-store';
 import { SpaceStore } from './core/space-store';
+import { ShortcutsService } from './shared/shortcuts/shortcuts';
 import { git, space } from './testing';
 
 describe('App', () => {
@@ -13,7 +14,7 @@ describe('App', () => {
     const data = space();
     TestBed.configureTestingModule({
       providers: [
-        provideRouter([]),
+        provideRouter([{ path: 'inbox', children: [] }]),
         {
           provide: SpaceStore,
           useValue: {
@@ -53,5 +54,15 @@ describe('App', () => {
   it('says so when the server cannot be reached', async () => {
     const el = await render('offline');
     expect(el.querySelector('[role="status"]')?.textContent).toContain('anvil serve');
+  });
+
+  it('goes to the Inbox with G then I, and lists the shortcuts with ?', async () => {
+    await render('ready');
+    const press = (key: string) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+    press('g');
+    press('i');
+    await vi.waitFor(() => expect(TestBed.inject(Router).url).toBe('/inbox'));
+    press('?');
+    expect(TestBed.inject(ShortcutsService).isOpen()).toBe(true);
   });
 });

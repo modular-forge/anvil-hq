@@ -1,0 +1,249 @@
+// The item page (design: Detail): calm, a readable article and the properties beside it.
+
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  max-width: 1200px;
+}
+
+.main {
+  display: flex;
+  flex: 999 1 30rem;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+  max-width: 780px;
+
+  --body-size: 15px;
+  --bg-under: var(--bg);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--tx3);
+  font-size: 13px;
+}
+
+.kicker a {
+  color: var(--tx2);
+}
+
+h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.title-button {
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: text;
+}
+
+.title-button:hover {
+  text-decoration: underline dotted var(--line2);
+  text-underline-offset: 6px;
+}
+
+.title-input {
+  width: 100%;
+  padding: 2px 8px;
+  border: 1px solid var(--hot2);
+  border-radius: var(--radius-m);
+  background: var(--s1);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.side {
+  display: flex;
+  flex: 1 1 17rem;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 340px;
+}
+
+.props {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--s1);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 4px 0 12px;
+  border: 1px solid currentcolor;
+  border-radius: 9px;
+  background: color-mix(in srgb, currentcolor 10%, var(--s1));
+}
+
+.status.hot {
+  box-shadow: 0 0 14px -4px var(--glow);
+}
+
+.status select {
+  flex: 1;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+option {
+  background: var(--s1);
+  color: var(--tx);
+}
+
+dl {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 10px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+dt,
+dt label {
+  color: var(--tx3);
+}
+
+dd {
+  margin: 0;
+}
+
+dd a {
+  color: var(--tx2);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field {
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--tx);
+  font-size: 13px;
+}
+
+.field:hover:not(:disabled, [readonly]),
+.field:focus {
+  border-color: var(--line2);
+  background: var(--s2);
+}
+
+.field::placeholder {
+  color: var(--tx3);
+}
+
+.wrap {
+  overflow-wrap: anywhere;
+}
+
+.small {
+  color: var(--tx2);
+  font-size: 12px;
+}
+
+.tiny {
+  color: var(--tx3);
+  font-size: 11px;
+}
+
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-l);
+  background: var(--s1);
+  color: var(--tx2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.note p {
+  margin: 0;
+}
+
+.note-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tx);
+  font-weight: 600;
+}
+
+.note a {
+  color: var(--tx);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.actions button {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line2);
+  border-radius: 9px;
+  background: var(--s2);
+  color: var(--tx);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.actions .danger {
+  border-color: var(--st-blocked);
+  background: transparent;
+  color: var(--st-blocked);
+}
+
+.lost {
+  color: var(--tx2);
+}

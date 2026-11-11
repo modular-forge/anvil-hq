@@ -1,56 +1,67 @@
 <nav aria-label="Main" class="sidebar">
-  <a routerLink="/" class="logo-link" aria-label="anvil, go to Home">
-    <anv-logo />
-    <span class="display wordmark">anvil</span>
-  </a>
+  <div class="bar">
+    <a routerLink="/" class="logo-link" aria-label="anvil, go to Home">
+      <anv-logo />
+      <span class="display wordmark">anvil</span>
+    </a>
+    <button type="button" class="menu-toggle" aria-controls="sidebar-menu" [attr.aria-expanded]="open()" (click)="open.set(!open())">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+        <path [attr.d]="open() ? 'M6 6l12 12M18 6L6 18' : 'M4 7h16M4 12h16M4 17h16'" />
+      </svg>
+      Menu
+    </button>
+  </div>
 
-  <ul class="links">
-    <li>
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">
-        <anv-icon name="home" />Home
-      </a>
-    </li>
-    <li>
-      <a routerLink="/inbox" routerLinkActive="active" ariaCurrentWhenActive="page">
-        <anv-icon name="inbox" />Inbox
-        @if (store.inboxOpen(); as open) {
-          <span class="count mono" [attr.aria-label]="open + ' open'">{{ open }}</span>
-        }
-      </a>
-    </li>
-    <li>
-      <a routerLink="/general" routerLinkActive="active" ariaCurrentWhenActive="page">
-        <anv-icon name="general" />General
-      </a>
-    </li>
-  </ul>
+  <div id="sidebar-menu" class="menu" [class.open]="open()">
 
-  @for (group of groups(); track group.label) {
-    <section class="group" [attr.aria-label]="group.label">
-      <h2 class="group-name">{{ group.label }}</h2>
-      <ul class="links">
-        @for (project of group.projects; track project.id) {
-          <li>
-            <a [routerLink]="['/projects', project.id]" routerLinkActive="active" ariaCurrentWhenActive="page">
-              <span class="prefix mono">{{ project.prefix }}</span>
-              <span class="name">{{ project.name }}</span>
-              @if (doing(project)) {
-                <span class="doing" title="Work in progress"><span class="sr-only">, work in progress</span></span>
-              }
-            </a>
-          </li>
-        }
-      </ul>
-    </section>
-  }
+    <ul class="links">
+      <li>
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">
+          <anv-icon name="home" />Home
+        </a>
+      </li>
+      <li>
+        <a routerLink="/inbox" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <anv-icon name="inbox" />Inbox
+          @if (store.inboxOpen(); as open) {
+            <span class="count mono" [attr.aria-label]="open + ' open'">{{ open }}</span>
+          }
+        </a>
+      </li>
+      <li>
+        <a routerLink="/general" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <anv-icon name="general" />General
+        </a>
+      </li>
+    </ul>
 
-  <div class="foot">
-    @if (store.space(); as space) {
-      <span class="dir mono" [title]="space.dir">{{ space.dir }}</span>
+    @for (group of groups(); track group.label) {
+      <section class="group" [attr.aria-label]="group.label">
+        <h2 class="group-name">{{ group.label }}</h2>
+        <ul class="links">
+          @for (project of group.projects; track project.id) {
+            <li>
+              <a [routerLink]="['/projects', project.id]" routerLinkActive="active" ariaCurrentWhenActive="page">
+                <span class="prefix mono">{{ project.prefix }}</span>
+                <span class="name">{{ project.name }}</span>
+                @if (doing(project)) {
+                  <span class="doing" title="Work in progress"><span class="sr-only">, work in progress</span></span>
+                }
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
     }
-    <div role="group" aria-label="Theme" class="theme">
-      <button type="button" [attr.aria-pressed]="theme.theme() === 'dark'" (click)="theme.set('dark')">Dark</button>
-      <button type="button" [attr.aria-pressed]="theme.theme() === 'light'" (click)="theme.set('light')">Light</button>
+
+    <div class="foot">
+      @if (store.space(); as space) {
+        <span class="dir mono" [title]="space.dir">{{ space.dir }}</span>
+      }
+      <div role="group" aria-label="Theme" class="theme">
+        <button type="button" [attr.aria-pressed]="theme.theme() === 'dark'" (click)="theme.set('dark')">Dark</button>
+        <button type="button" [attr.aria-pressed]="theme.theme() === 'light'" (click)="theme.set('light')">Light</button>
+      </div>
     </div>
   </div>
 </nav>

@@ -50,6 +50,36 @@
   font-weight: 400;
 }
 
+.add-button {
+  height: 34px;
+  border: 1px dashed var(--line2);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--tx3);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.add {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.add input {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--hot2);
+  border-radius: 9px;
+  background: var(--s1);
+  color: var(--tx);
+}
+
+.add-hint {
+  color: var(--tx3);
+  font-size: 11px;
+}
+
 .cards {
   display: flex;
   flex-direction: column;
@@ -57,4 +87,26 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 22px 12px;
+  border: 1px dashed var(--line2);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.empty-title {
+  color: var(--tx2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.empty-hint {
+  color: var(--tx3);
+  font-size: 12px;
 }

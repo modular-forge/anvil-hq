@@ -1,0 +1,61 @@
+@use '../section';
+
+.history {
+  @include section.stack;
+}
+
+.from {
+  color: var(--tx3);
+  font-weight: 400;
+}
+
+// A timeline: a rail with a dot per commit, the newest one lit.
+ol {
+  margin: 0 0 0 6px;
+  padding: 0;
+  border-left: 2px solid var(--line2);
+  list-style: none;
+}
+
+li {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 0 0 14px 18px;
+  font-size: 13px;
+}
+
+li::before {
+  position: absolute;
+  top: 5px;
+  left: -6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--line2);
+  box-shadow: 0 0 0 3px var(--bg-under, var(--s1));
+  content: '';
+}
+
+li:first-child::before {
+  background: var(--hot2);
+}
+
+.subject {
+  flex: 1 1 12rem;
+  min-width: 0;
+  color: var(--tx2);
+}
+
+.hash,
+.when,
+.empty {
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+.empty {
+  margin: 0;
+}

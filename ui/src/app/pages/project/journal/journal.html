@@ -1,0 +1,33 @@
+@if (!readOnly()) {
+  <form class="compose" (submit)="$event.preventDefault(); add()">
+    <label for="journal-draft" class="cap">Note for today · {{ today }}</label>
+    <textarea id="journal-draft" name="draft" rows="3" placeholder="What happened, what you decided, what comes next…" [ngModel]="draft()" (ngModelChange)="draft.set($event)" (keydown)="keydown($event)"></textarea>
+    <div class="row">
+      <span class="note">Saved to <span class="mono">journal/{{ today }}.md</span> and committed</span>
+      <button type="submit" [disabled]="!draft().trim() || saving()">Add note <span class="mono key">Ctrl Enter</span></button>
+    </div>
+  </form>
+}
+
+@for (day of days(); track day.date) {
+  <section class="day" [attr.aria-labelledby]="'day-' + day.date">
+    <h2 [id]="'day-' + day.date">
+      {{ label(day.date) }}
+      @if (label(day.date) !== day.date) {
+        <span class="mono">{{ day.date }}</span>
+      }
+    </h2>
+    <ol>
+      @for (entry of day.entries; track $index) {
+        <li>
+          <span class="time mono">{{ entry.time }}</span>
+          <p>
+            @for (part of parts(entry.text); track $index) {@if ('id' in part) {<button type="button" class="mention mono" (click)="board.onSelect(part.id)">{{ part.id }}</button>} @else {{{ part.text }}}}
+          </p>
+        </li>
+      }
+    </ol>
+  </section>
+} @empty {
+  <p class="empty">No notes yet. The first one starts the journal of this project.</p>
+}

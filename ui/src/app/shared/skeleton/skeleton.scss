@@ -1,0 +1,68 @@
+:host {
+  display: block;
+}
+
+.frame {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 0;
+}
+
+.frame.board {
+  flex-direction: row;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.column {
+  display: flex;
+  flex: 0 0 236px;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sk {
+  display: block;
+  border-radius: var(--radius-m);
+  background-color: var(--s2);
+  background-image: linear-gradient(90deg, transparent, var(--brushed), var(--s3), var(--brushed), transparent);
+  background-repeat: no-repeat;
+  background-size: 240px 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.head {
+  width: 55%;
+  height: 14px;
+}
+
+.line {
+  width: 70%;
+  height: 14px;
+}
+
+.wide {
+  width: 90%;
+}
+
+.short {
+  width: 45%;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: -240px 0;
+  }
+
+  to {
+    background-position: calc(100% + 240px) 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk {
+    animation: none;
+    background-image: none;
+  }
+}

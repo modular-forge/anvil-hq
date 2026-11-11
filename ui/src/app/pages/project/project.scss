@@ -12,7 +12,53 @@ h1 {
 }
 
 .head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
   padding-bottom: 14px;
+}
+
+.release {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-m);
+  background: var(--s2);
+  color: var(--tx);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.views {
+  display: flex;
+  gap: 2px;
+  margin-right: 12px;
+}
+
+.views:last-child {
+  margin-right: auto;
+}
+
+.views a {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 7px;
+  color: var(--tx2);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.views a[aria-current='page'] {
+  background: var(--s3);
+  color: var(--tx);
+  font-weight: 600;
 }
 
 .names {
@@ -61,6 +107,7 @@ h1 {
 .toolbar {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
   padding-bottom: 14px;
@@ -83,14 +130,6 @@ h1 {
   color: var(--tx);
 }
 
-.readonly {
-  margin: 14px 0 0;
-  padding: 10px 14px;
-  border: 1px solid color-mix(in srgb, var(--st-blocked) 50%, var(--line2));
-  border-radius: var(--radius-m);
-  color: var(--tx2);
-}
-
 .layout {
   display: flex;
   flex: 1;
@@ -101,12 +140,10 @@ h1 {
   flex: 1;
 }
 
-.loading {
-  color: var(--tx3);
-}
 
 // Narrow screens: the panel covers the board from the right.
 .panel {
+  view-transition-name: detail-panel;
   position: fixed;
   top: 0;
   right: 0;
@@ -128,5 +165,88 @@ h1 {
     max-height: 100vh;
     margin: 0 -24px 0 16px;
     box-shadow: none;
+  }
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+}
+
+// A native select dressed as the design's dashed chip; solid once it filters.
+.filter {
+  position: relative;
+  display: inline-flex;
+  color: var(--tx3);
+}
+
+.filter::after {
+  position: absolute;
+  top: 50%;
+  right: 11px;
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentcolor;
+  border-bottom: 1.5px solid currentcolor;
+  content: '';
+  pointer-events: none;
+  transform: translateY(-70%) rotate(45deg);
+}
+
+.filter select {
+  height: 28px;
+  padding: 0 24px 0 10px;
+  border: 1px dashed var(--line2);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tx2);
+  font-size: 12px;
+  cursor: pointer;
+  appearance: none;
+}
+
+.filter.on select {
+  border-style: solid;
+  border-color: var(--hot2);
+  background-color: var(--s3);
+  color: var(--tx);
+}
+
+.filter option {
+  background: var(--s1);
+  color: var(--tx);
+}
+
+.clear {
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--tx2);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+// Browsers without view transitions still see the panel slide in, as one piece.
+@supports not (view-transition-name: none) {
+  .panel {
+    animation: panel-in var(--open-duration) var(--ease-out);
+  }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
   }
 }

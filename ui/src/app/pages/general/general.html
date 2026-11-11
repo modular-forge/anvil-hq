@@ -1,0 +1,75 @@
+<header class="head">
+  <div>
+    <h1 class="display">General</h1>
+    <p class="sub">Decisions that apply to every project, newest first.</p>
+  </div>
+  <div class="head-actions">
+    <a class="board-link" routerLink="/projects/general">Open as a board</a>
+    @if (!store.space()?.readOnly) {
+      <button type="button" class="new" (click)="newDecision()">+ New decision</button>
+    }
+  </div>
+</header>
+
+@if (decisions().length) {
+  <ul class="decisions">
+    @for (d of decisions(); track d.item.id) {
+      <li>
+        <article
+          class="decision"
+          tabindex="-1"
+          [attr.data-decision]="d.item.id"
+          [class.discussing]="d.state === 'Discussing'"
+          [class.superseded]="d.state === 'Superseded'"
+          [attr.aria-labelledby]="'decision-' + d.item.id"
+        >
+          <div class="top">
+            <span class="mono id">{{ d.item.id }}</span>
+            <span class="state" [attr.data-state]="d.state">{{ d.state }}</span>
+            <span class="date">{{ d.item.fields.since }}</span>
+          </div>
+          <h2 class="title" [id]="'decision-' + d.item.id">
+            <a [routerLink]="['/projects', 'general']" [queryParams]="{ item: d.item.id }">{{ d.item.fields.title }}</a>
+          </h2>
+          @for (block of d.blocks; track $index) {
+            @if (block.type === 'p') {
+              <p>
+                @for (part of block.parts; track $index) {@if ('id' in part) {<button type="button" class="mention mono" (click)="show(part.id)">{{ part.id }}</button>} @else {{{ part.text }}}}
+              </p>
+            } @else {
+              <ul class="bullets">
+                @for (entry of block.items; track $index) {
+                  <li>
+                    @for (part of entry; track $index) {@if ('id' in part) {<button type="button" class="mention mono" (click)="show(part.id)">{{ part.id }}</button>} @else {{{ part.text }}}}
+                  </li>
+                }
+              </ul>
+            }
+          }
+          @if (d.item.fields.supersededBy; as next) {
+            <button type="button" class="next" (click)="show(next)">Superseded by <span class="mono">{{ next }}</span> <span aria-hidden="true">→</span></button>
+          }
+        </article>
+      </li>
+    }
+  </ul>
+} @else {
+  <p class="empty">No decisions yet.</p>
+}
+
+@if (others().length) {
+  <section aria-labelledby="others-title" class="others">
+    <h2 id="others-title" class="cap">Other items in General</h2>
+    <ul>
+      @for (item of others(); track item.id) {
+        <li>
+          <a [routerLink]="['/projects', 'general']" [queryParams]="{ item: item.id }">
+            <span class="dot" [style.background]="'var(--st-' + item.fields.status + ')'" aria-hidden="true"></span>
+            <span class="mono">{{ item.id }}</span> {{ item.fields.title }}
+            <span class="sr-only">, {{ statuses[item.fields.status]?.name }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+  </section>
+}

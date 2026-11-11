@@ -12,6 +12,38 @@
   padding: 18px 14px;
 }
 
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-m);
+  background: var(--s2);
+  color: var(--tx);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+// Folded on narrow screens until the button opens it; always open beside the page.
+.menu {
+  display: none;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.menu.open {
+  display: flex;
+}
+
 .logo-link {
   display: flex;
   align-items: center;
@@ -148,6 +180,15 @@
 }
 
 @media (min-width: 900px) {
+  .menu-toggle {
+    display: none;
+  }
+
+  .menu {
+    display: flex;
+    flex: 1;
+  }
+
   :host {
     position: sticky;
     top: 0;

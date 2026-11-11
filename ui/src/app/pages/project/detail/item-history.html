@@ -1,0 +1,16 @@
+<section aria-labelledby="history-title" class="history">
+  <h3 id="history-title">History <span class="from">· from git</span></h3>
+  @if (entries().length) {
+    <ol>
+      @for (entry of entries(); track entry.hash) {
+        <li>
+          <span class="subject">{{ entry.subject }}</span>
+          <span class="mono hash">{{ entry.hash }}</span>
+          <time class="when" [attr.datetime]="entry.date">{{ entry.when }}</time>
+        </li>
+      }
+    </ol>
+  } @else {
+    <p class="empty">No commits yet.</p>
+  }
+</section>

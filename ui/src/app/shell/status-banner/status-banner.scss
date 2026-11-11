@@ -1,0 +1,113 @@
+:host {
+  display: block;
+}
+
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--st-blocked) 45%, var(--line));
+  border-radius: var(--radius-l);
+  background: var(--s1);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+p {
+  margin: 0;
+  color: var(--tx2);
+  line-height: 1.5;
+}
+
+code,
+.problems {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+code {
+  align-self: flex-start;
+}
+
+.problems {
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+
+.problems li {
+  display: flex;
+  flex-direction: column;
+}
+
+.file {
+  color: var(--tx);
+}
+
+.message {
+  padding-left: 2ch;
+  color: var(--st-blocked);
+}
+
+.hint {
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+// Three embers glowing in turn while the board waits for the server.
+.embers {
+  display: flex;
+  flex: none;
+  gap: 5px;
+  padding-top: 6px;
+}
+
+.embers span {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--hot1);
+  animation: ember 1.4s ease-in-out infinite;
+}
+
+.embers span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.embers span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes ember {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .embers span {
+    animation: none;
+  }
+}
