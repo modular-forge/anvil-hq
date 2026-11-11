@@ -3,6 +3,8 @@ import { TOKEN_KEY } from '../../core/token';
 import { Locked } from './locked';
 
 describe('Locked', () => {
+  // Other specs may leave a token behind in the same environment: start from none.
+  beforeEach(() => sessionStorage.clear());
   afterEach(() => sessionStorage.clear());
 
   function render(): HTMLElement {

@@ -24,6 +24,9 @@ describe('SpaceStore', () => {
   let http: HttpTestingController;
   let feed: FakeFeed;
 
+  // The token stays in this file's tests: other specs share the environment.
+  afterEach(() => sessionStorage.clear());
+
   beforeEach(() => {
     sessionStorage.clear();
     feed = new FakeFeed();
