@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, type TestContext } from 'node:test';
 import { main } from '../src/cli.ts';
 import { releaseProject } from '../src/projects.ts';
-import { evidenceRefs } from '../src/release-git.ts';
+import { checkRelease, evidenceRefs } from '../src/release-git.ts';
 import { openSpace } from '../src/store.ts';
-import { NOW, REGISTRY, captureIo, initRepo, item, makeSpace } from './support.ts';
+import { NOW, REGISTRY, captureIo, fields, initRepo, item, makeSpace } from './support.ts';
 
 describe('evidenceRefs', () => {
   it('finds pull requests, commit hashes and repositories in the evidence', () => {
@@ -17,10 +18,50 @@ describe('evidenceRefs', () => {
     assert.deepEqual(evidenceRefs('fixed in c5b3afa and 1a2b3c4d5e'), { prs: [], commits: ['c5b3afa', '1a2b3c4d5e'], repos: [] });
   });
 
-  it('takes no plain numbers, dates or words for a hash, and finds nothing in a plain note', () => {
-    assert.deepEqual(evidenceRefs('released 2026-11-11, build 12345678, decafbad'), { prs: [], commits: [], repos: [] });
+  it('takes any hex word of a hash length as a candidate, since a short hash can be all digits or all letters', () => {
+    assert.deepEqual(evidenceRefs('fixed in 7161198, build 12345678, decafbad').commits, ['7161198', '12345678', 'decafbad']);
+  });
+
+  it('takes no dates, short numbers or other words for a hash, and finds nothing in a plain note', () => {
+    assert.deepEqual(evidenceRefs('released 2026-11-11, build 123456, on the facade'), { prs: [], commits: [], repos: [] });
     assert.deepEqual(evidenceRefs('confirmed by user (board)'), { prs: [], commits: [], repos: [] });
     assert.deepEqual(evidenceRefs(undefined), { prs: [], commits: [], repos: [] });
+  });
+});
+
+describe('checkRelease', () => {
+  const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+  /** With this author, date and message, the commit's hash starts with ten digits. */
+  const DIGITS = '7161198615fc745fef35e51452549e7ecb4470db';
+  const WHO = { name: 'Test', email: 'test@example.com', date: '1700000000 +0000' };
+
+  it('checks a commit whose short hash is all digits, and ignores numbers git does not know', (t) => {
+    const repo = mkdtempSync(join(tmpdir(), 'anvil-digits-'));
+    t.after(() => rmSync(repo, { recursive: true, force: true }));
+    const git = initRepo(repo);
+    const env = {
+      ...process.env,
+      GIT_AUTHOR_NAME: WHO.name, GIT_AUTHOR_EMAIL: WHO.email, GIT_AUTHOR_DATE: WHO.date,
+      GIT_COMMITTER_NAME: WHO.name, GIT_COMMITTER_EMAIL: WHO.email, GIT_COMMITTER_DATE: WHO.date,
+    };
+    const tree = (...args: string[]) =>
+      execFileSync('git', ['-C', repo, '-c', 'commit.gpgsign=false', 'commit-tree', EMPTY_TREE, ...args], { encoding: 'utf8', env }).trim();
+    const digits = tree('-m', 'Work 3');
+    assert.equal(digits, DIGITS);
+    git('tag', 'with-it', tree('-p', digits, '-m', 'Later work'));
+
+    const items = [
+      fields('AL-1', { status: 'done', evidence: digits.slice(0, 7) }),
+      fields('AL-2', { status: 'done', evidence: `commit ${digits.slice(0, 10)}` }),
+      fields('AL-3', { status: 'done', evidence: 'build 12345678' }),
+    ];
+    assert.deepEqual(checkRelease(repo, 'with-it', null, [], items).map((c) => [c.id, c.verdict, c.detail]), [
+      ['AL-1', 'in', 'commit 7161198'],
+      ['AL-2', 'in', 'commit 7161198'],
+      ['AL-3', 'unverified', 'no PR or commit in the evidence'],
+    ]);
+    // main does not have that commit.
+    assert.deepEqual(checkRelease(repo, 'main', null, [], items.slice(0, 1)).map((c) => [c.verdict, c.detail]), [['out', 'commit 7161198 not in this version']]);
   });
 });
 
