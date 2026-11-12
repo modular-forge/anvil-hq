@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { request } from 'node:http';
-import { utimesSync, writeFileSync } from 'node:fs';
+import { mkdirSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, type TestContext } from 'node:test';
-import { isDataPath } from '../src/server/events.ts';
+import { isDataPath, isGitRefPath } from '../src/server/events.ts';
 import { tokenMatches } from '../src/server/security.ts';
 import { startServer, type ServerOptions } from '../src/server/server.ts';
 import { startTestServer } from './server-support.ts';
@@ -250,6 +250,32 @@ describe('server change feed', () => {
     }, /event: change\ndata: .*AL-5\.md/);
     assert.match(text, /^event: hello\ndata: {"watching":true}/);
     assert.doesNotMatch(text, /\.tmp/);
+  });
+
+  it('announces a moved git ref without a path, and ignores the rest of .git', async (t) => {
+    const { server, dir } = await serve(t);
+    mkdirSync(join(dir, '.git/refs/heads'), { recursive: true });
+    const text = await stream(server.port, () => {
+      setTimeout(() => {
+        writeFileSync(join(dir, '.git/index'), 'index');
+        writeFileSync(join(dir, '.git/refs/heads/main.lock'), 'lock');
+        writeFileSync(join(dir, '.git/refs/heads/main'), '0123abc');
+      }, 100);
+    }, /event: change\ndata: .*\n\n/);
+    assert.match(text, /event: change\ndata: {"paths":\[\]}/);
+  });
+
+  it('knows where git records that a branch moved', () => {
+    assert.equal(isGitRefPath('.git/HEAD'), true);
+    assert.equal(isGitRefPath('.git/packed-refs'), true);
+    assert.equal(isGitRefPath('.git/refs/heads/main'), true);
+    assert.equal(isGitRefPath('.git/refs/remotes/origin/main'), true);
+    assert.equal(isGitRefPath('.git/refs/heads/main.lock'), false);
+    assert.equal(isGitRefPath('.git/HEAD.lock'), false);
+    assert.equal(isGitRefPath('.git/index'), false);
+    assert.equal(isGitRefPath('.git/objects/ab/cdef'), false);
+    assert.equal(isGitRefPath('.git/logs/HEAD'), false);
+    assert.equal(isGitRefPath('projects/alpha/items/AL-1.md'), false);
   });
 
   it('tells boards to poll when it is not watching', async (t) => {

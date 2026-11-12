@@ -174,14 +174,17 @@ read-only too, since it only sends commits that already exist. Answers: `200` wi
 number of commits) and the new git status; `422` without an upstream; `409` with
 `failure: "rejected"` when the remote has commits this copy does not (the board says to pull in a
 terminal and does not try to fix it); `502` when git fails (network, credentials). Every answer
-carries the git status, because the change feed ignores `.git/`. The CLI and the Claude Code
+carries the git status, so the board does not wait for the change feed. The CLI and the Claude Code
 plugin never push.
 
 **Changes on disk.** `GET /api/events` is an event stream fed by a recursive `fs.watch` of the
 data space (`server/events.ts`). It sends `hello` with `{ watching }` on connect, then `change`
 with the paths that changed, debounced. An empty `paths` list means "reload everything": Windows
 sends events without a name when many files change at once (a git commit). Hidden temp files of atomic writes and `.git/` are
-ignored. If watching is unavailable or fails, it sends `mode` with `{ watching: false }` and the
+ignored, except where git records that a branch moved (`.git/HEAD`, `.git/packed-refs` and
+`.git/refs/`): a commit, a push or a fetch sends `change` with no path, so the board reads the git
+status again. A write commits after its data file changed, and without this the board would read
+the status too early. If watching is unavailable or fails, it sends `mode` with `{ watching: false }` and the
 board polls `/api/space` every 5 seconds, comparing `stamp`. Because the stream also needs the
 token header, the board reads it with `fetch` instead of `EventSource`, which cannot send
 headers.
