@@ -88,9 +88,10 @@
             }
           </span>
           <span class="counts">
+            <span><b>{{ project.counts['backlog'] ?? 0 }}</b> backlog</span>
+            <span><b>{{ project.counts['todo'] ?? 0 }}</b> todo</span>
             <span><b>{{ project.counts['doing'] ?? 0 }}</b> doing</span>
             <span [class.alert]="project.counts['blocked']"><b>{{ project.counts['blocked'] ?? 0 }}</b> blocked</span>
-            <span><b>{{ project.counts['todo'] ?? 0 }}</b> todo</span>
           </span>
           @if (safeLink(project.notion) || project.repos?.length) {
             <span class="links">
