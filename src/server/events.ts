@@ -77,8 +77,9 @@ export class ChangeFeed {
   #changed(name: string | null): void {
     if (name !== null) {
       const path = name.replaceAll('\\', '/');
-      if (!isDataPath(path)) return;
-      this.#pending.add(path);
+      // A moved ref changes the git status but no data file: announce it without a path.
+      if (isDataPath(path)) this.#pending.add(path);
+      else if (!isGitRefPath(path)) return;
     }
     if (this.#timer) return;
     this.#timer = setTimeout(() => {
@@ -103,6 +104,17 @@ export function isDataPath(path: string): boolean {
   if (path === 'projects.json') return true;
   if (path !== 'projects' && !path.startsWith('projects/')) return false;
   return !path.split('/').some((segment) => segment.startsWith('.'));
+}
+
+/**
+ * Where git records that a branch moved: a commit, a push or a fetch. A write commits after its
+ * data file changed, so without these the board would read the git status before the commit
+ * exists and never again. The rest of `.git/` (index, objects, logs) and git's lock files stay
+ * ignored: only the final rename of a ref matters.
+ */
+export function isGitRefPath(path: string): boolean {
+  if (path.endsWith('.lock')) return false;
+  return path === '.git/HEAD' || path === '.git/packed-refs' || path.startsWith('.git/refs/');
 }
 
 function event(name: string, data: unknown): string {
