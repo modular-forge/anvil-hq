@@ -254,9 +254,11 @@ describe('server change feed', () => {
 
   it('announces a moved git ref without a path, and ignores the rest of .git', async (t) => {
     const { server, dir } = await serve(t);
-    mkdirSync(join(dir, '.git/refs/heads'), { recursive: true });
     const text = await stream(server.port, () => {
+      // Everything is written in one go: the stream ends at the first change, and the folder
+      // itself may already cause it.
       setTimeout(() => {
+        mkdirSync(join(dir, '.git/refs/heads'), { recursive: true });
         writeFileSync(join(dir, '.git/index'), 'index');
         writeFileSync(join(dir, '.git/refs/heads/main.lock'), 'lock');
         writeFileSync(join(dir, '.git/refs/heads/main'), '0123abc');
