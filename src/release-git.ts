@@ -34,9 +34,10 @@ export function evidenceRefs(evidence: string | undefined): EvidenceRefs {
   for (const match of text.matchAll(/(?:github\.com\/|\(|\s|^)([A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9._-]+?)(?:\.git)?(?=[\s),;:]|\/pull\/|$)/g)) {
     repos.add((match[1] ?? '').toLowerCase());
   }
-  // A hash has a letter and a digit, so plain numbers and words are not taken for one.
-  const commits = [...new Set([...text.matchAll(/\b[0-9a-f]{7,40}\b/g)].map((m) => m[0]))]
-    .filter((word) => /[a-f]/.test(word) && /\d/.test(word));
+  // Any hex word of a hash's length is a candidate, numbers and words like "decafbad" included:
+  // a real short hash can be all digits or all letters, so git decides (containsCommit) and
+  // ignores the ones it does not know.
+  const commits = [...new Set([...text.matchAll(/\b[0-9a-f]{7,40}\b/g)].map((m) => m[0]))];
   return { prs: [...prs], commits, repos: [...repos] };
 }
 
