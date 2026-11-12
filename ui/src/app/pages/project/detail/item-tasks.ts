@@ -13,6 +13,8 @@ import { ProjectBoard } from '../project-board';
   styleUrl: './item-tasks.scss',
 })
 export class ItemTasks {
+  /** Heading level of the section title: 3 inside the detail panel, 2 on the item page. */
+  readonly headingLevel = input<2 | 3>(3);
   protected readonly board = inject(ProjectBoard);
   readonly item = input.required<ItemDetail>();
   /** Offer "+ Add task" (the item page). */

@@ -81,6 +81,13 @@
   --radius-l: 14px;
   --sidebar-width: 248px;
 
+  // Elevation: shadows and the scrim behind dialogs, the same in both themes.
+  --scrim: rgb(0 0 0 / 45%);
+  --shadow-overlay: 0 20px 50px rgb(0 0 0 / 45%);
+  --shadow-panel: -16px 0 40px rgb(0 0 0 / 30%);
+  --shadow-lift: 0 14px 26px rgb(0 0 0 / 50%);
+  --shadow-toast: 0 12px 30px rgb(0 0 0 / 35%);
+
   color-scheme: dark;
 }
 
@@ -127,6 +134,22 @@ textarea {
 :focus-visible {
   outline: 2px solid var(--hot2);
   outline-offset: 2px;
+}
+
+// Headings wrap into lines of similar length; taps do not wait for a double-tap zoom.
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+a,
+button,
+input,
+select,
+textarea,
+summary {
+  touch-action: manipulation;
 }
 
 .mono {

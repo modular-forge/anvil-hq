@@ -96,6 +96,13 @@ describe('ItemPage', () => {
     expect(el.textContent).toContain('+ Add task to AL-7');
   });
 
+  it('announces its sections one level below the title, without skipping a heading level', async () => {
+    const el = (await render()).nativeElement as HTMLElement;
+    const levels = [...el.querySelectorAll('h3')].map((h) => h.getAttribute('aria-level'));
+    expect(levels.length).toBeGreaterThanOrEqual(4);
+    expect(new Set(levels)).toEqual(new Set(['2']));
+  });
+
   it('edits the title in place with E, and saves fields when they change', async () => {
     const fixture = await render();
     const el = fixture.nativeElement as HTMLElement;

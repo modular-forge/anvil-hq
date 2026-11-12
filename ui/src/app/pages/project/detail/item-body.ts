@@ -16,6 +16,8 @@ import { ProjectBoard } from '../project-board';
   styleUrl: './item-body.scss',
 })
 export class ItemBody {
+  /** Heading level of the section title: 3 inside the detail panel, 2 on the item page. */
+  readonly headingLevel = input<2 | 3>(3);
   protected readonly board = inject(ProjectBoard);
   readonly #host = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly #injector = inject(Injector);

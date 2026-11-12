@@ -113,7 +113,7 @@ button.backup {
   border: 1px solid color-mix(in srgb, var(--hot1) 45%, var(--line2));
   border-radius: 12px;
   background: color-mix(in srgb, var(--hot1) 6%, var(--s1));
-  box-shadow: 0 12px 30px rgb(0 0 0 / 35%);
+  box-shadow: var(--shadow-toast);
   color: var(--tx2);
   font-size: 13px;
   line-height: 1.5;
