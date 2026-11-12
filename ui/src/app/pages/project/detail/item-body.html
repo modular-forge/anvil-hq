@@ -2,7 +2,7 @@
 @if (blocks().length || canEdit) {
   <section aria-labelledby="desc-title" class="description">
     <div class="section-head" [class.quiet]="hideHeading()">
-      <h3 id="desc-title" [class.sr-only]="hideHeading()">Description</h3>
+      <h3 [attr.aria-level]="headingLevel()" id="desc-title" [class.sr-only]="hideHeading()">Description</h3>
       @if (canEdit && !editing()) {
         <button type="button" class="edit" (click)="edit()">
           {{ blocks().length ? 'Edit' : 'Add a description' }}<span class="sr-only">{{ blocks().length ? ' the description' : '' }}</span>

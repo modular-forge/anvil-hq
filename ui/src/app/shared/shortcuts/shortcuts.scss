@@ -6,11 +6,11 @@ dialog {
   border-radius: 16px;
   background: var(--s1);
   color: var(--tx);
-  box-shadow: 0 20px 50px rgb(0 0 0 / 45%);
+  box-shadow: var(--shadow-overlay);
 }
 
 dialog::backdrop {
-  background: rgb(0 0 0 / 45%);
+  background: var(--scrim);
 }
 
 dialog[open] {

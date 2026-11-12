@@ -2,7 +2,7 @@
 @if (it.children.length || canAdd()) {
   <section aria-labelledby="tasks-title" class="tasks">
     <div class="section-head">
-      <h3 id="tasks-title">Tasks</h3>
+      <h3 [attr.aria-level]="headingLevel()" id="tasks-title">Tasks</h3>
       @if (it.children.length) {
         <span class="mono count">{{ closedCount() }} of {{ it.children.length }} closed</span>
       }

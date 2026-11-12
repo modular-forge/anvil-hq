@@ -28,10 +28,10 @@
         }
       </div>
 
-      <anv-item-body class="body" [item]="item" [hideHeading]="true" />
-      <anv-item-steps [item]="item" />
-      <anv-item-tasks [item]="item" [adding]="true" />
-      <anv-item-history />
+      <anv-item-body class="body" [item]="item" [hideHeading]="true" [headingLevel]="2" />
+      <anv-item-steps [item]="item" [headingLevel]="2" />
+      <anv-item-tasks [item]="item" [adding]="true" [headingLevel]="2" />
+      <anv-item-history [headingLevel]="2" />
     </article>
 
     <aside class="side" aria-label="Properties">

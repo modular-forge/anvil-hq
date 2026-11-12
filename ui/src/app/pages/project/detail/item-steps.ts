@@ -14,6 +14,8 @@ import { ProjectBoard } from '../project-board';
   styleUrl: './item-steps.scss',
 })
 export class ItemSteps {
+  /** Heading level of the section title: 3 inside the detail panel, 2 on the item page. */
+  readonly headingLevel = input<2 | 3>(3);
   protected readonly board = inject(ProjectBoard);
   readonly item = input.required<ItemDetail>();
 

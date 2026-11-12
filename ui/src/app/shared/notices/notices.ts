@@ -70,7 +70,7 @@ export class Notices {
       border: 1px solid color-mix(in srgb, var(--st-blocked) 60%, var(--line2));
       border-radius: var(--radius-l);
       background: var(--s1);
-      box-shadow: 0 12px 30px rgb(0 0 0 / 35%);
+      box-shadow: var(--shadow-toast);
       color: var(--tx);
       pointer-events: auto;
     }

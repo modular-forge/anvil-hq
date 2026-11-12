@@ -151,9 +151,10 @@ h1 {
   z-index: 5;
   width: min(420px, 100vw);
   overflow-y: auto;
+  overscroll-behavior: contain;
   border-left: 1px solid var(--line);
   background: var(--s1);
-  box-shadow: -16px 0 40px rgb(0 0 0 / 30%);
+  box-shadow: var(--shadow-panel);
 }
 
 @media (min-width: 1200px) {

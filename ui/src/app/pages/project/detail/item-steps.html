@@ -2,7 +2,7 @@
 @if (it.steps.length || !closed()) {
   <section aria-labelledby="steps-title" class="steps">
     <div class="section-head">
-      <h3 id="steps-title">Steps</h3>
+      <h3 [attr.aria-level]="headingLevel()" id="steps-title">Steps</h3>
       @if (it.steps.length) {
         <span class="mono count">{{ it.progress.done + it.progress.skipped }} of {{ it.progress.total }}</span>
         <span class="segs" aria-hidden="true">
