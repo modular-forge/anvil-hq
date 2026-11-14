@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, type TestContext } from 'node:test';
 import { parseItem } from '../src/item.ts';
-import { createProject, linkProject, loadTemplate, promoteIdea, releaseNotes, releaseProject, scaffoldProject, setProject } from '../src/projects.ts';
+import { createProject, linkProject, loadTemplate, promoteIdea, releaseNotes, releaseProject, scaffoldProject, setFocus, setProject } from '../src/projects.ts';
 import { openSpace } from '../src/store.ts';
 import { validateSpace } from '../src/validate.ts';
 import { NOW, REGISTRY, fields, initRepo, itemText, makeSpace, item, type SpaceFiles } from './support.ts';
@@ -158,6 +158,45 @@ describe('setProject', () => {
     assert.equal(cancelled.hint, '1 item(s) stay open in beta: BE-1. Cancel them or move them to another project');
     const empty = makeSpace(t, { ...item('beta', 'BE-1', { status: 'done', evidence: 'x' }) });
     assert.equal(setProject(openSpace(empty), 'beta', { state: 'done' }).hint, null);
+  });
+});
+
+describe('setFocus', () => {
+  it('writes the order before the projects, replaces it and clears it', (t) => {
+    const dir = makeSpace(t, {});
+    const result = setFocus(openSpace(dir), ['beta', 'alpha']);
+    assert.deepEqual(result.paths, ['projects.json']);
+    assert.equal(result.message, 'focus: beta, alpha');
+    assert.deepEqual(Object.keys(registry(dir)), ['schemaVersion', 'focus', 'projects']);
+    setFocus(openSpace(dir), ['alpha']);
+    assert.deepEqual(registry(dir).focus, ['alpha']);
+    assert.equal(setFocus(openSpace(dir), []).message, 'focus: cleared');
+    assert.equal(registry(dir).focus, undefined);
+    assertValidSpace(dir);
+  });
+
+  it('refuses what is not an open registered project, repeats and no change', (t) => {
+    const dir = makeSpace(t, {});
+    assert.throws(() => setFocus(openSpace(dir), ['nope']), /unknown project "nope"/);
+    assert.throws(() => setFocus(openSpace(dir), ['general']), /fixed area/);
+    assert.throws(() => setFocus(openSpace(dir), ['alpha', 'alpha']), /alpha is listed twice/);
+    assert.throws(() => setFocus(openSpace(dir), []), /no order of focus to clear/);
+    setFocus(openSpace(dir), ['alpha']);
+    assert.throws(() => setFocus(openSpace(dir), ['alpha']), /already the order of focus/);
+    setProject(openSpace(dir), 'beta', { state: 'cancelled' });
+    assert.throws(() => setFocus(openSpace(dir), ['beta']), /beta is cancelled: only open projects/);
+  });
+
+  it('loses a project when it is done or cancelled, and keeps it when it is paused', (t) => {
+    const dir = makeSpace(t, {});
+    setFocus(openSpace(dir), ['beta', 'alpha']);
+    setProject(openSpace(dir), 'beta', { state: 'paused' });
+    assert.deepEqual(registry(dir).focus, ['beta', 'alpha']);
+    setProject(openSpace(dir), 'beta', { state: 'done' });
+    assert.deepEqual(registry(dir).focus, ['alpha']);
+    setProject(openSpace(dir), 'alpha', { state: 'cancelled' });
+    assert.equal(registry(dir).focus, undefined);
+    assertValidSpace(dir);
   });
 });
 

@@ -365,7 +365,7 @@ function composeBody(body: string | undefined, steps: string[]): string {
  * value can hold a space, and PowerShell turns an unquoted `a,b` into `a b` when npm's `anvil.ps1`
  * shim passes it on.
  */
-function splitList(value: string): string[] {
+export function splitList(value: string): string[] {
   return [...new Set(value.split(/[\s,]+/).filter(Boolean))];
 }
 
