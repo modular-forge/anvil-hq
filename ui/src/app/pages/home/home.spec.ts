@@ -51,6 +51,26 @@ describe('HomePage', () => {
     });
   });
 
+  it('puts the projects in the order of focus first within their state, and says their place', async () => {
+    projects.set([
+      project({ id: 'alpha', name: 'Alpha' }),
+      project({ id: 'beta', prefix: 'BE', name: 'Beta', focus: 3 }),
+      project({ id: 'gamma', prefix: 'GA', name: 'Gamma', focus: 1 }),
+      project({ id: 'delta', prefix: 'DE', name: 'Delta', state: 'paused', focus: 2 }),
+    ]);
+    const el = await render();
+    const cards = [...el.querySelectorAll('.project')].map((card) => [
+      card.querySelector('.name')?.textContent?.trim(),
+      card.querySelector('.chip.focus')?.textContent?.trim() ?? null,
+    ]);
+    expect(cards).toEqual([
+      ['Gamma', 'Focus 1'],
+      ['Beta', 'Focus 3'],
+      ['Alpha', null],
+      ['Delta', 'Focus 2'],
+    ]);
+  });
+
   it('marks the blocked count only when something is blocked', async () => {
     const el = await render();
     expect([...el.querySelectorAll('.counts .alert')].map((s) => s.textContent?.trim())).toEqual(['2 blocked']);

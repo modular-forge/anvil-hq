@@ -30,6 +30,12 @@ test('opens with the token, then hides it from the address bar', async ({ page }
   await expect(nav.getByRole('link', { name: /Bakery site/ })).toBeVisible();
   await expect(nav.getByRole('region', { name: 'Paused' }).getByRole('link', { name: /Home lab/ })).toBeVisible();
   expect(page.url()).not.toContain('token');
+  // Home says each project's place in the order of focus.
+  const active = page.getByRole('main').getByRole('region', { name: 'Active' }).getByRole('listitem');
+  await expect(active.first()).toContainText('Pocket Budget');
+  await expect(active.first()).toContainText('Focus 1');
+  await expect(active.nth(1)).toContainText('Bakery site');
+  await expect(active.nth(1)).toContainText('Focus 2');
 
   // A reload keeps working: the token lives in sessionStorage now.
   await page.reload();

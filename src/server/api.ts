@@ -58,7 +58,8 @@ export function readRoute(state: ApiState, pathname: string, query: URLSearchPar
 }
 
 /**
- * The overview the board starts from: projects with their counts per status, whether the space
+ * The overview the board starts from: projects with their counts per status and their place in
+ * the order of focus (1 is first; none when they are not in it), whether the space
  * is valid (the board is read-only when it is not), and a stamp that changes with any file.
  */
 function space(state: ApiState): ApiResponse {
@@ -71,9 +72,11 @@ function space(state: ApiState): ApiResponse {
     byStatus[entry.item.fields.status] = (byStatus[entry.item.fields.status] ?? 0) + 1;
     counts.set(entry.project, byStatus);
   }
-  const projects = [...ctx.projects.values()].map((project) => ({
-    ...project, reserved: RESERVED_IDS.has(project.id), counts: counts.get(project.id) ?? {},
-  }));
+  const focus = ctx.space.registry.focus ?? [];
+  const projects = [...ctx.projects.values()].map((project) => {
+    const place = focus.indexOf(project.id) + 1;
+    return { ...project, reserved: RESERVED_IDS.has(project.id), counts: counts.get(project.id) ?? {}, ...(place ? { focus: place } : {}) };
+  });
   return {
     status: 200,
     body: {

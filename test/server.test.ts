@@ -8,7 +8,7 @@ import { isDataPath, isGitRefPath } from '../src/server/events.ts';
 import { tokenMatches } from '../src/server/security.ts';
 import { startServer, type ServerOptions } from '../src/server/server.ts';
 import { startTestServer } from './server-support.ts';
-import { item, itemText, fields, makeSpace, type SpaceFiles } from './support.ts';
+import { REGISTRY, item, itemText, fields, makeSpace, type SpaceFiles } from './support.ts';
 
 const FILES: SpaceFiles = {
   ...item('alpha', 'AL-1', { kind: 'feature', status: 'doing', aliases: ['BE-7'] }, '- [x] One\n- [ ] Two\n- [x] ~~Three~~ (skipped: not needed)\n'),
@@ -113,8 +113,8 @@ describe('server static files', () => {
 });
 
 describe('server read API', () => {
-  it('describes the space: projects with counts, validity and a stamp', async (t) => {
-    const { call, dir } = await serve(t);
+  it('describes the space: projects with counts, their place in the order of focus, validity and a stamp', async (t) => {
+    const { call, dir } = await serve(t, { ...FILES, 'projects.json': { ...REGISTRY, focus: ['beta'] } });
     const space = (await call('/api/space')).json();
     assert.equal(space.readOnly, false);
     assert.equal(space.problemCount, 0);
@@ -123,6 +123,8 @@ describe('server read API', () => {
     const alpha = space.projects.find((p: { id: string }) => p.id === 'alpha');
     assert.deepEqual(alpha.counts, { doing: 1, todo: 1, cancelled: 1 });
     assert.equal(alpha.reserved, false);
+    assert.equal(alpha.focus, undefined);
+    assert.equal(space.projects.find((p: { id: string }) => p.id === 'beta').focus, 1);
     assert.equal(space.projects.find((p: { id: string }) => p.id === 'inbox').reserved, true);
 
     const before = space.stamp;
