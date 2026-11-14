@@ -20,6 +20,8 @@ the commands this skill may run without asking are written that way, and other f
 
 - **Nothing is written before the user says yes** to the list of changes, even when tools run
   without asking for permission. The user may drop or edit entries; apply only what they approved.
+  During the session the items may already have been kept live (moved to doing or blocked, steps
+  checked): this command is the final check, so propose only what is still missing or wrong.
 - **Only the anvil CLI changes items.** Never edit the files in the data space by hand: the CLI
   validates each change and commits only what it touched.
 - **Read again before proposing.** What you saw earlier in the session, the starting briefing
@@ -53,3 +55,6 @@ the commands this skill may run without asking are written that way, and other f
 6. **Close:** run `anvil briefing` again and say what changed. If it reports unpushed commits in the
    data space, or `git status -sb` shows the project's branch ahead of its remote, remind the user
    to push.
+7. **Say what is next.** From that briefing: the next item of this project, and, if it shows an
+   order of focus across projects, which project and item come first. If that is another project,
+   tell the user to open a new session in that project's folder to work on it.

@@ -7,7 +7,8 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { TOOL_ROOT } from '../src/data-dir.ts';
-import { hookOutput } from '../plugin/scripts/briefing.ts';
+import { COMMAND_NAMES } from '../src/cli.ts';
+import { hookOutput, sessionRules } from '../plugin/scripts/briefing.ts';
 
 const PLUGIN = join(TOOL_ROOT, 'plugin');
 
@@ -99,6 +100,24 @@ describe('the session start hook', () => {
     assert.equal(hookOutput({ status: 0, stdout: '  \n' }), '');
     assert.equal(hookOutput({ status: 1, stdout: 'Error: …' }), '');
     assert.equal(hookOutput({ status: null, stdout: '' }), '', 'timed out or not found');
+  });
+
+  it('adds the session rules after a briefing, and nothing without one', () => {
+    assert.equal(hookOutput({ status: 0, stdout: '# anvil: Alpha\n' }, '## Rules\n\n- One\n'), '# anvil: Alpha\n\n## Rules\n\n- One\n');
+    assert.equal(hookOutput({ status: 0, stdout: '' }, '## Rules\n'), '');
+    assert.equal(hookOutput({ status: 1, stdout: 'Error: …' }, '## Rules\n'), '');
+  });
+
+  it('ships session rules that only name commands the CLI has', () => {
+    const rules = sessionRules();
+    assert.match(rules, /^## Working with anvil in this session\n/);
+    const named = [...rules.matchAll(/`anvil ([a-z]+(?: [a-z]+)?)/g)].map((m) => m[1] ?? '');
+    assert.ok(named.length >= 4, 'the rules show the commands to use');
+    for (const name of named) assert.ok(COMMAND_NAMES.includes(name), `"anvil ${name}" is a command`);
+    for (const rule of ['Tie the work to an item', 'Keep the item live', 'Ask first', 'One project per session', 'Say where the focus is']) {
+      assert.ok(rules.includes(`**${rule}`), rule);
+    }
+    assert.ok(rules.split('\n').length <= 30, 'short: every session pays for it');
   });
 
   it('never fails a session, even without the anvil CLI', () => {

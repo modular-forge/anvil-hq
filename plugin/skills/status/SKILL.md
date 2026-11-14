@@ -27,6 +27,8 @@ the commands this skill may run without asking are written that way, and other f
    - `anvil audit --project <id>`
    - `anvil item show <id>` for each item in doing or blocked, to see its steps and reason.
 3. **Report**, briefly:
+   - **Focus:** if the briefing shows an order of focus across projects, where this project
+     stands in it and which project and item come first.
    - **Doing:** each item with its step progress and the next unchecked step.
    - **Blocked:** each item with its reason.
    - **Next:** the todo items, highest priority first.

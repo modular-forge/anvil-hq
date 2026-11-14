@@ -159,8 +159,12 @@ or, inside a session, `/plugin install anvil --marketplace modular-forge/anvil-h
 
 - **When a session starts** in a repository anvil knows (by its `origin` remote, listed under
   `repos` in `projects.json`, or by a `.anvil.json` marker), Claude gets that project's
-  briefing: what is in doing, blocked and next, the last journal note and unpushed commits.
-  Elsewhere it gets nothing.
+  briefing: the order of focus across projects, what is in doing, blocked and next, the last
+  journal note and unpushed commits. Elsewhere it gets nothing.
+- **While it works**, Claude follows a few rules that come with the briefing
+  (`plugin/rules/session.md`): tie the work to an item and say when a request is outside the
+  priorities; keep the item live (doing, blocked, steps checked); ask before creating, closing
+  or skipping; one project per session; and say where the focus is.
 - **`/anvil:status`**: where the project stands, with what has probably fallen behind.
 - **`/anvil:wrap-up`**: closes a session. Claude proposes the updates (steps, statuses with real
   evidence, follow-ups, a journal note), applies the ones you approve with the CLI, and reminds
@@ -171,7 +175,9 @@ or, inside a session, `/plugin install anvil --marketplace modular-forge/anvil-h
 
 Claude changes items only through the CLI, so every change is validated and committed like your
 own. The commands may run the read-only `anvil` and `git` commands without asking; anything that
-writes goes through Claude Code's usual permission prompt, and the commands ask you first. What
+writes goes through Claude Code's usual permission prompt, and the commands ask you first. To let
+Claude keep items live without a prompt each time, allow `anvil item status *` and
+`anvil step check *` in your Claude Code permissions; the plugin does not do it for you. What
 Claude reads becomes part of the conversation, like anything else you show it.
 
 ## Your data

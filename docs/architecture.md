@@ -342,6 +342,13 @@ the version of anvil the user installed and adds no second way to change data.
   output; Claude Code adds it to the context. It always exits with 0 and prints nothing when the
   CLI is missing, fails, times out (10 s) or the folder is no known project. On Windows the
   command goes through the shell, because npm's `anvil` is a `.cmd` shim.
+- **`rules/session.md`**: how Claude works with anvil during a session (tie the work to an item,
+  keep it live, ask before creating or closing, one project per session, say where the focus
+  is). The hook prints it after the briefing, so it reaches every session of a known project and
+  no other; a skill's text would only load when the skill is called. It is kept short, because
+  every session pays for it, and `test/plugin.test.ts` checks that it only names commands the
+  CLI has. The rules are instructions, not permissions: writes still go through the user's
+  permission settings.
 - **`skills/status`**, **`skills/wrap-up`**, **`skills/review`** become `/anvil:status`,
   `/anvil:wrap-up` and `/anvil:review`. Their `allowed-tools` pre-approve read-only commands
   only (`anvil briefing`, `item list`, `audit`…, `git log`, `gh pr view`…), which

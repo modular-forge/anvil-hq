@@ -344,6 +344,9 @@ const COMMANDS: Record<string, Command> = {
   },
 };
 
+/** Every command by name, such as "item status". */
+export const COMMAND_NAMES: readonly string[] = Object.keys(COMMANDS);
+
 /** Runs the CLI with `argv` (without node and script) and returns the exit code. */
 export async function main(argv: string[], options: Partial<Io> = {}): Promise<number> {
   const io: Io = { stdout: process.stdout, stderr: process.stderr, env: process.env, cwd: process.cwd(), now: () => new Date(), ...options };
