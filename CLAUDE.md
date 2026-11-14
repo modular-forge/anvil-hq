@@ -152,7 +152,7 @@ docs/format.md      # format reference (public contract)
 docs/architecture.md # how the code works: write path, concurrency, errors, tests
 ui/                 # the board's Angular sources (src/app: core, shell, shared, pages), e2e/
 ui-dist/            # the built board, committed; served by anvil serve
-plugin/             # Claude Code plugin: session hook, skills (status, wrap-up, review), auditor agent
+plugin/             # Claude Code plugin: session hook, session rules, skills (status, wrap-up, review), auditor agent
 .claude-plugin/     # marketplace.json: this repository is the plugin's marketplace
 examples/           # made-up data space, used by docs and tests
 test/               # node:test files (.test.ts)
