@@ -36,6 +36,15 @@ describe('validateSpace', () => {
     assert.ok(found.includes('projects/ghost: folder of an unknown project "ghost"'));
   });
 
+  it('reports a focus order that names anything but a registered project, or one twice', (t) => {
+    const dir = makeSpace(t, { 'projects.json': { ...REGISTRY, focus: ['beta', 'ghost', 'inbox', 'beta'] } });
+    const found = messages(dir);
+    assert.ok(found.includes('projects.json: focus lists an unknown project "ghost"'), found.join('\n'));
+    assert.ok(found.includes('projects.json: focus lists "inbox", a fixed area, not a registered project'));
+    assert.ok(found.some((message) => message.startsWith('projects.json: focus ') && message.includes('repeat')), found.join('\n'));
+    assert.deepEqual(messages(makeSpace(t, { 'projects.json': { ...REGISTRY, focus: ['beta', 'alpha'] } })), []);
+  });
+
   it('reports an unreadable registry', (t) => {
     assert.match(messages(makeSpace(t, { 'projects.json': '{ broken' })).join(), /projects.json: cannot read/);
   });

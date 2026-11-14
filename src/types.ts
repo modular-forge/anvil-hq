@@ -74,6 +74,8 @@ export interface Registry {
   $schema?: string;
   schemaVersion: number;
   archiveAfterDays?: number;
+  /** Order of focus across projects, as project ids; the first comes first. */
+  focus?: string[];
   projects: Project[];
 }
 

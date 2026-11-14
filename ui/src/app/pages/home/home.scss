@@ -220,6 +220,13 @@ h1 {
   color: var(--tx2);
 }
 
+.chip.focus {
+  border: 1px solid var(--hot1);
+  background: transparent;
+  color: var(--hot1);
+  font-weight: 600;
+}
+
 .chip.released {
   border: 1px solid var(--st-released);
   background: transparent;

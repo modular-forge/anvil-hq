@@ -61,7 +61,10 @@ export function childrenOf(parent: ItemEntry, items: ItemEntry[], byId: Map<stri
   });
 }
 
-/** Problems of a projects.json registry: its schema, and ids and prefixes that clash. */
+/**
+ * Problems of a projects.json registry: its schema, ids and prefixes that clash, and a focus order
+ * that names anything but a registered project.
+ */
 export function registryProblems(registry: unknown): string[] {
   const problems = validateSchema(projectsSchema, registry).map(({ path, message }) => `${path || 'root'} ${message}`);
   const projects = (registry as Partial<Registry> | null)?.projects;
@@ -79,6 +82,12 @@ export function registryProblems(registry: unknown): string[] {
     }
     ids.add(project.id);
     prefixes.set(project.prefix, project.id);
+  }
+  const focus = (registry as Partial<Registry>).focus;
+  for (const id of Array.isArray(focus) ? focus : []) {
+    if (typeof id !== 'string') continue;
+    if (RESERVED_AREAS.some((area) => area.id === id)) problems.push(`focus lists "${id}", a fixed area, not a registered project`);
+    else if (!ids.has(id)) problems.push(`focus lists an unknown project "${id}"`);
   }
   return problems;
 }

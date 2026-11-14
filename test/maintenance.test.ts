@@ -7,9 +7,9 @@ import { doctor, hookCheck, type CheckResult } from '../src/doctor.ts';
 import { initSpace } from '../src/init.ts';
 import { archiveItems, isFinal, search } from '../src/maintenance.ts';
 import { CURRENT_VERSION, migrate } from '../src/migrate.ts';
-import { openSpace } from '../src/store.ts';
+import { getProject, openSpace } from '../src/store.ts';
 import { validateSpace } from '../src/validate.ts';
-import { NOW, fields, initRepo, itemText, makeSpace, item, shortPath } from './support.ts';
+import { NOW, REGISTRY, fields, initRepo, itemText, makeSpace, item, shortPath } from './support.ts';
 
 const versioned = { release: 'versioned' };
 const unversioned = { release: 'none' };
@@ -144,6 +144,25 @@ describe('briefing', () => {
     assert.match(text, /Backlog: 1 item\(s\)\. Inbox: 1 open item\(s\)\./);
     assert.match(text, /## Last journal note \(2026-11-09\)\n## 18:00\n\nStopped at the login screen\n/);
     assert.doesNotMatch(text, /AL-4/);
+  });
+
+  it('starts with the order of focus across projects and lists todo by priority', (t) => {
+    const data = makeSpace(t, {
+      'projects.json': { ...REGISTRY, focus: ['beta', 'alpha'] },
+      ...item('alpha', 'AL-1', { status: 'todo', title: 'Later', priority: 'low' }),
+      ...item('alpha', 'AL-2', { status: 'todo', title: 'No priority' }),
+      ...item('alpha', 'AL-3', { status: 'todo', title: 'First', priority: 'high' }),
+      ...item('beta', 'BE-1', { status: 'todo', title: 'Waiting' }),
+      ...item('beta', 'BE-2', { status: 'doing', title: 'In hand' }),
+    });
+    const ctx = openSpace(data);
+    const alpha = briefing(ctx, getProject(ctx, 'alpha'));
+    assert.match(alpha, /active\n\n## Order of focus across projects\n1\. Beta \(beta\): BE-2 In hand \(doing\)\n2\. Alpha \(alpha\), this project: AL-3 First \(todo\)\n\n## Todo\n- AL-3 First\n- AL-1 Later\n- AL-2 No priority\n/);
+
+    const outside = openSpace(makeSpace(t, { 'projects.json': { ...REGISTRY, focus: ['beta'] } }));
+    assert.match(briefing(outside, getProject(outside, 'alpha')), /## Order of focus across projects\n1\. Beta \(beta\)\nThis project is not in the order of focus\.\n/);
+    const none = openSpace(makeSpace(t, {}));
+    assert.doesNotMatch(briefing(none, getProject(none, 'alpha')), /Order of focus/);
   });
 
   it('prefers the .anvil.json marker and finds nothing outside known repositories', (t) => {

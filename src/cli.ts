@@ -16,11 +16,11 @@ import { serializeItem } from './item.ts';
 import { archiveItems, search, type ArchiveResult } from './maintenance.ts';
 import { migrate } from './migrate.ts';
 import { DEFAULT_PORT, startServer } from './server/server.ts';
-import { PROJECT_SETTABLE, createProject, linkProject, promoteIdea, releaseProject, scaffoldProject, setProject, type ProjectChanges, type ReleaseResult } from './projects.ts';
+import { PROJECT_SETTABLE, createProject, linkProject, promoteIdea, releaseProject, scaffoldProject, setFocus, setProject, type ProjectChanges, type ReleaseResult } from './projects.ts';
 import { OPEN_STATUSES } from './rules.ts';
 import {
   CREATE_STATUSES, SETTABLE_FIELDS, addJournal, addStep, changeStep, createItem, getItem, getProject, listJournal,
-  moveItem, openSpace, setDescription, setFields, setStatus,
+  moveItem, openSpace, setDescription, setFields, setStatus, splitList,
 } from './store.ts';
 import type { Change, Context } from './types.ts';
 import { childrenOf, validateSpace } from './validate.ts';
@@ -211,6 +211,18 @@ const COMMANDS: Record<string, Command> = {
     options: Object.fromEntries(PROJECT_SETTABLE.map((field) => [field, { type: 'string' }])) as ParseArgsOptionsConfig,
     run: ({ ctx, values, args }) => setProject(ctx, arg(args, 'id'), Object.fromEntries(PROJECT_SETTABLE.map((field) => [field, str(values, field)])) as ProjectChanges),
   }),
+  'project focus': write<Change & { focus: string[] }>({
+    usage: 'project focus (<id>… | --clear)',
+    summary: 'Set the order of focus across projects, first to last; the briefing of every project shows it. --clear removes it',
+    args: ['ids…'],
+    options: { clear: { type: 'boolean', default: false } },
+    run: ({ ctx, values, args }) => {
+      const ids = splitList(args.ids ?? '');
+      if (bool(values, 'clear') === ids.length > 0) throw new UsageError('project focus needs either the project ids, first to last, or --clear');
+      return setFocus(ctx, ids);
+    },
+    print: (r) => (r.focus.length ? `Order of focus: ${r.focus.map((id, i) => `${i + 1}. ${id}`).join(', ')}` : 'Order of focus cleared'),
+  }),
   'project link': write({
     usage: 'project link [--id <id>] [--prefix <XX> --kind <kind> --release <versioned|none>] [--name] [--state]',
     summary: 'Register the project of the current git repository, or add the repository to it',
@@ -399,14 +411,20 @@ async function dispatch(argv: string[], io: Io): Promise<number> {
   return 0;
 }
 
+/**
+ * Binds the positional arguments by name. `name?` is optional; a last `name…` takes all the rest,
+ * joined by spaces, and may be empty.
+ */
 function bindArgs(command: Command, given: string[]): Args {
   const expected = command.args ?? [];
-  const required = expected.filter((a) => !a.endsWith('?')).length;
-  if (given.length < required || given.length > expected.length) {
-    const shown = expected.length ? expected.map((a) => (a.endsWith('?') ? `[<${a.slice(0, -1)}>]` : `<${a}>`)).join(' ') : 'no arguments';
+  const rest = expected.at(-1)?.endsWith('…') ?? false;
+  const required = expected.filter((a) => !/[?…]$/.test(a)).length;
+  if (given.length < required || (!rest && given.length > expected.length)) {
+    const show = (a: string) => (a.endsWith('…') ? `[<${a.slice(0, -1)}>…]` : a.endsWith('?') ? `[<${a.slice(0, -1)}>]` : `<${a}>`);
+    const shown = expected.length ? expected.map(show).join(' ') : 'no arguments';
     throw new UsageError(`expected ${shown}\nUsage: anvil ${command.usage}`);
   }
-  return Object.fromEntries(expected.map((a, i) => [a.replace(/\?$/, ''), given[i]]));
+  return Object.fromEntries(expected.map((a, i) => [a.replace(/[?…]$/, ''), a.endsWith('…') ? given.slice(i).join(' ') || undefined : given[i]]));
 }
 
 function runInit({ values, args, io }: Invocation): number {

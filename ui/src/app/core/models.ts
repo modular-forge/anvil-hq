@@ -12,6 +12,8 @@ export interface Project {
   summary?: string;
   repos?: string[];
   notion?: string;
+  /** Place in the order of focus across projects, 1 first; none when the project is not in it. */
+  focus?: number;
   /** The fixed inbox and general areas. */
   reserved: boolean;
   /** Items per status, archived ones left out. */

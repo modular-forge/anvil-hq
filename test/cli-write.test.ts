@@ -37,6 +37,24 @@ describe('anvil write commands', () => {
     assert.match(readFileSync(join(dir, 'projects.json'), 'utf8'), /"id": "beta",[\s\S]*?"state": "paused"/);
   });
 
+  it('sets and clears the order of focus with project focus, however the ids are separated', async (t) => {
+    const dir = makeSpace(t, {});
+    const git = initRepo(dir);
+    const set = await run(dir, ['project', 'focus', 'beta', 'alpha']);
+    assert.equal(set.code, 0);
+    assert.match(set.stdout, /^Order of focus: 1\. beta, 2\. alpha\nCommitted [0-9a-f]+\n$/);
+    assert.equal(git('log', '-1', '--format=%s'), 'focus: beta, alpha\n');
+    assert.equal(git('show', '--name-only', '--format=', 'HEAD'), 'projects.json\n');
+    assert.match(readFileSync(join(dir, 'projects.json'), 'utf8'), /\n  "focus": \["beta", "alpha"\],\n  "projects": \[/);
+    assert.match((await run(dir, ['project', 'focus', 'alpha,beta'])).stdout, /^Order of focus: 1\. alpha, 2\. beta\n/);
+    assert.match((await run(dir, ['project', 'focus', '--clear'])).stdout, /^Order of focus cleared\n/);
+    for (const argv of [['project', 'focus'], ['project', 'focus', 'alpha', '--clear']]) {
+      const wrong = await run(dir, argv);
+      assert.equal(wrong.code, 2);
+      assert.match(wrong.stderr, /either the project ids, first to last, or --clear/);
+    }
+  });
+
   it('replaces a description from --text or --file and commits it', async (t) => {
     const dir = makeSpace(t, { 'projects/alpha/items/AL-1.md': itemText(fields('AL-1'), 'Old\n\n- [ ] Step\n') });
     const git = initRepo(dir);

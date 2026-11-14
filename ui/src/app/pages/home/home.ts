@@ -19,12 +19,20 @@ export function nowItems(items: readonly ItemSummary[]): ItemSummary[] {
     .sort((a, b) => rank(a) - rank(b) || a.project.localeCompare(b.project) || Number(a.id.split('-')[1]) - Number(b.id.split('-')[1]));
 }
 
+/** Projects in the order of focus first, in that order; the rest keep their order. */
+export function byFocus(projects: readonly Project[]): Project[] {
+  return [...projects].sort((a, b) => (a.focus ?? Infinity) - (b.focus ?? Infinity));
+}
+
 /** Only https links leave the board. */
 export function safeLink(url: string | undefined): string | null {
   return url && /^https:\/\//.test(url) ? url : null;
 }
 
-/** Home: what is in the fire across every project, the inbox, and every project by state. */
+/**
+ * Home: what is in the fire across every project, the inbox, and every project by state, those in
+ * the order of focus first.
+ */
 @Component({
   selector: 'anv-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -46,7 +54,7 @@ export class HomePage {
   protected readonly projects = computed(() => this.store.projects().filter((p) => !p.reserved));
   protected readonly now = computed(() => nowItems(this.#items()));
   protected readonly groups = computed(() => {
-    const groups = groupProjects(this.projects());
+    const groups = groupProjects(this.projects()).map((group) => ({ ...group, projects: byFocus(group.projects) }));
     if (!this.showFinished()) return groups;
     const finished = (state: string, label: string) => ({ label, projects: this.projects().filter((p) => p.state === state) });
     return [...groups, finished('done', 'Done'), finished('cancelled', 'Cancelled')].filter((g) => g.projects.length > 0);

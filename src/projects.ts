@@ -13,7 +13,7 @@ import { validateSchema, type Schema } from './json-schema.ts';
 import { normalizeProject, writeRegistry } from './registry.ts';
 import { absolute, createItem, getItem, getProject, moveItem, openSpace, today } from './store.ts';
 import { OPEN_STATUSES } from './rules.ts';
-import type { Change, Context, ItemEntry, ItemFields, Project } from './types.ts';
+import type { Change, Context, ItemEntry, ItemFields, Project, Registry } from './types.ts';
 import { itemProblems } from './validate.ts';
 
 const templateSchema = JSON.parse(readFileSync(join(TOOL_ROOT, 'schema', 'template.schema.json'), 'utf8')) as Schema;
@@ -59,6 +59,8 @@ export type ProjectChanges = Partial<Record<(typeof PROJECT_SETTABLE)[number], s
 /** Fields a project must keep: an empty value would remove them. */
 const PROJECT_REQUIRED: ReadonlySet<string> = new Set(['state', 'name', 'kind']);
 const OPEN_LIST_LIMIT = 5;
+/** Project states with nothing left to work on. */
+const CLOSED_STATES: ReadonlySet<string> = new Set(['done', 'cancelled']);
 
 /**
  * Changes fields of a registered project; an empty summary or notion removes it. A project is
@@ -90,11 +92,51 @@ export function setProject(ctx: Context, id: string, changes: ProjectChanges): C
     throw new AnvilError(`${id} cannot be done with ${open.length} open item(s): ${list(open)}. Close or cancel them first, or move them to another project`);
   }
   registry.projects[index] = next;
-  const path = writeRegistry(ctx, registry);
+  // A closed project leaves the order of focus: there is nothing left to work on.
+  const leavesFocus = CLOSED_STATES.has(next.state ?? '') && registry.focus?.includes(id);
+  const reordered = leavesFocus ? withFocus(registry, (registry.focus ?? []).filter((other) => other !== id)) : registry;
+  const path = writeRegistry(ctx, reordered);
   const hint = next.state === 'cancelled' && current.state !== 'cancelled' && open.length
     ? `${open.length} item(s) stay open in ${id}: ${list(open)}. Cancel them or move them to another project`
     : null;
   return { id, paths: [path], message: `${id}: set ${keys.join(', ')}`, hint };
+}
+
+/** `registry` with `focus` as its order of focus, written before the projects; an empty order removes it. */
+function withFocus(registry: Registry, focus: string[]): Registry {
+  const { $schema, schemaVersion, archiveAfterDays, projects } = registry;
+  return {
+    ...($schema === undefined ? {} : { $schema }),
+    schemaVersion,
+    ...(archiveAfterDays === undefined ? {} : { archiveAfterDays }),
+    ...(focus.length ? { focus } : {}),
+    projects,
+  };
+}
+
+/**
+ * Replaces the order of focus across projects: `ids` from first to last, or none to remove it.
+ * Only open registered projects can be in it.
+ */
+export function setFocus(ctx: Context, ids: string[]): Change & { focus: string[] } {
+  const registry = structuredClone(ctx.space.registry);
+  const repeated = ids.find((id, index) => ids.indexOf(id) !== index);
+  if (repeated) throw new AnvilError(`${repeated} is listed twice`);
+  for (const id of ids) {
+    const project = registry.projects.find((p) => p.id === id);
+    if (!project) {
+      if (ctx.projects.has(id)) throw new AnvilError(`${id} is a fixed area, not a registered project: it has no place in the order of focus`);
+      getProject(ctx, id);
+      throw new AnvilError(`unknown project "${id}"`);
+    }
+    if (CLOSED_STATES.has(project.state ?? '')) throw new AnvilError(`${id} is ${project.state}: only open projects can be in the order of focus`);
+  }
+  const current = registry.focus ?? [];
+  if (JSON.stringify(ids) === JSON.stringify(current)) {
+    throw new AnvilError(ids.length ? 'that is already the order of focus' : 'there is no order of focus to clear');
+  }
+  const path = writeRegistry(ctx, withFocus(registry, ids));
+  return { focus: ids, paths: [path], message: ids.length ? `focus: ${ids.join(', ')}` : 'focus: cleared' };
 }
 
 /**

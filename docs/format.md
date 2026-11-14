@@ -29,6 +29,7 @@ complete data space that follows it.
   "$schema": "../anvil-hq/schema/projects.schema.json",
   "schemaVersion": 1,
   "archiveAfterDays": 60,
+  "focus": ["bakery-site"],
   "projects": [
     { "id": "bakery-site", "prefix": "BS", "name": "Bakery site", "summary": "Website for a bakery",
       "state": "active", "kind": "web", "release": "none", "repos": ["example-org/bakery-site"] }
@@ -40,6 +41,7 @@ complete data space that follows it.
 | --- | --- | --- |
 | `schemaVersion` | yes | Format version, `1`. `anvil migrate` upgrades older data |
 | `archiveAfterDays` | no | Days in a final status before an item is archived. Default 60 |
+| `focus` | no | Order of focus across projects: ids of registered projects, without repeats; the first is what to work on first. `anvil project focus` writes it, the briefing of every project shows it, and a project that becomes `done` or `cancelled` leaves it |
 | `projects[].id` | yes | Folder name: lowercase letters, digits and hyphens. Not `inbox` or `general` |
 | `projects[].prefix` | yes | Item id prefix: 2 to 4 capital letters, unique. Not `IN` or `GN` |
 | `projects[].name` | yes | Display name |

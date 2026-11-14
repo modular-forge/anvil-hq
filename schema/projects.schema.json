@@ -17,6 +17,12 @@
       "type": "integer",
       "minimum": 1
     },
+    "focus": {
+      "description": "Order of focus across projects: project ids, the first is what to work on first. Projects left out have no position.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }
+    },
     "projects": {
       "type": "array",
       "items": {

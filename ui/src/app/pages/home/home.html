@@ -78,6 +78,9 @@
             }
           </a>
           <span class="chips">
+            @if (project.focus; as focus) {
+              <span class="chip focus">Focus {{ focus }}</span>
+            }
             @if (project.kind) {
               <span class="chip">{{ project.kind }}</span>
             }

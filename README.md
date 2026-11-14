@@ -53,6 +53,8 @@ now" in the board's backup panel. Nothing else ever pushes.
   (`web`, `mobile`, `server`, `tooling`) and a release mode: `versioned` projects publish done
   items in versions, `none` projects are finished when items are done. A project's state
   changes with `anvil project set`; it cannot be `done` while it has open items.
+  `anvil project focus` records which projects come first; the briefing of every project
+  starts with that order.
 - **Items** are Markdown files with a small header: tasks, features and bugs (which group
   tasks), decisions and ideas. Ideas without a project go to the `inbox`; decisions that affect
   every project go to `general`.
@@ -75,6 +77,7 @@ anvil project promote <idea-id> --id <id> --prefix AB --kind mobile --release ve
 anvil project release <id> <version> [--exclude AB-7]… [--dry-run] [--out notes.md]
 anvil project release <id> <version> --ref v1.2.0 --dry-run  # inside the project's repo: only what that tag has
 anvil project set <id> --state paused                     # also --name, --summary, --kind, --notion
+anvil project focus <id>…                                 # order of focus across projects; --clear removes it
 anvil project link                                        # register the current repository
 anvil item create <project> --kind task --title "…" [--parent AB-3] [--step "…"]…
 anvil item list [--project <id>] [--status doing]… [--all]

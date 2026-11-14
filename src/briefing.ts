@@ -1,5 +1,5 @@
 // `anvil briefing`: a short Markdown summary of the open items of the project the current folder
-// belongs to. Meant for a Claude Code SessionStart hook, so it must stay short and never fail.
+// belongs to, after the order of focus across projects. Meant for a Claude Code SessionStart hook, so it must stay short and never fail.
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -9,6 +9,38 @@ import type { Context, Item, Project } from './types.ts';
 
 const LIST_LIMIT = 10;
 const JOURNAL_CHARS = 400;
+const PRIORITY_ORDER = ['high', 'medium', 'low'];
+
+/** Highest priority first; items without one go last. The sort is stable, so ties keep their order. */
+function byPriority(a: Item, b: Item): number {
+  const rank = (item: Item) => {
+    const index = PRIORITY_ORDER.indexOf(item.fields.priority ?? '');
+    return index < 0 ? PRIORITY_ORDER.length : index;
+  };
+  return rank(a) - rank(b);
+}
+
+/** What to work on first in a project: what is in doing, else the todo item with the highest priority. */
+function nextItem(items: Item[]): Item | undefined {
+  return items.find((item) => item.fields.status === 'doing') ?? items.filter((item) => item.fields.status === 'todo').sort(byPriority)[0];
+}
+
+/**
+ * The order of focus across projects, with what comes first in each and where `project` stands.
+ * Nothing when the data space has no order.
+ */
+function focusLines(ctx: Context, project: Project): string[] {
+  const focus = ctx.space.registry.focus ?? [];
+  if (!focus.length) return [];
+  const lines = focus.map((id, index) => {
+    const other = ctx.projects.get(id);
+    const next = nextItem(ctx.space.items.filter((e) => e.project === id && !e.archived).map((e) => e.item));
+    const mark = id === project.id ? ', this project' : '';
+    return `${index + 1}. ${other?.name ?? id} (${id})${mark}${next ? `: ${next.fields.id} ${next.fields.title} (${next.fields.status})` : ''}`;
+  });
+  const outside = focus.includes(project.id) ? [] : ['This project is not in the order of focus.'];
+  return ['## Order of focus across projects', ...lines, ...outside, ''];
+}
 
 /** The project of the repository at `cwd`: by its .anvil.json marker, then by its origin remote. */
 export function detectProject(ctx: Context, cwd: string): Project | null {
@@ -42,9 +74,10 @@ export function briefing(ctx: Context, project: Project): string {
     ...(project.summary ? [project.summary] : []),
     ...(project.notion ? [`Notion: ${project.notion}`] : []),
     '',
+    ...focusLines(ctx, project),
     ...list('Doing', inStatus('doing')),
     ...list('Blocked', inStatus('blocked'), (item) => ` (${item.fields.reason})`),
-    ...list('Todo', inStatus('todo')),
+    ...list('Todo', inStatus('todo').sort(byPriority)),
   ];
   const backlog = inStatus('backlog').length;
   const inbox = ctx.space.items.filter((e) => e.project === 'inbox' && !e.archived && !['done', 'cancelled'].includes(e.item.fields.status)).length;
